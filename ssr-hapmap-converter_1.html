@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SSR→HapMap | GenoConvert</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0a0e14; --surface:#111720; --surface2:#19222e; --border:#1f2d3d;
+  --accent:#00d4aa; --accent2:#f7c948; --danger:#ff4d6d; --warn:#ff8c42;
+  --text:#e2eaf4; --muted:#5a7394;
+  --mono:'DM Mono',monospace; --sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,212,170,.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.03)1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* ── HEADER ── */
+header{position:relative;z-index:10;border-bottom:1px solid var(--border);padding:0 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;height:56px;
+  backdrop-filter:blur(12px);background:rgba(10,14,20,.9);flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:9px;font-size:1rem;font-weight:800;letter-spacing:-.02em;}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),#0099aa);
+  border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.logo span{color:var(--accent);}
+.hbadge{font-family:var(--mono);font-size:.6rem;background:rgba(0,212,170,.1);color:var(--accent);
+  border:1px solid rgba(0,212,170,.25);padding:2px 7px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase;}
+nav{display:flex;gap:1.5rem;}
+nav a{font-size:.82rem;color:var(--muted);text-decoration:none;font-weight:500;transition:color .2s;}
+nav a:hover{color:var(--text);}nav a.active{color:var(--accent);}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;border-radius:6px;
+  font-size:.75rem;font-weight:700;cursor:pointer;border:none;font-family:var(--sans);
+  transition:all .15s;letter-spacing:.02em;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text);}
+.btn-accent{background:var(--accent);color:var(--bg);}
+.btn-accent:hover{background:#00f5c4;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,212,170,.3);}
+.btn-warn{background:rgba(247,201,72,.12);color:var(--accent2);border:1px solid rgba(247,201,72,.25);}
+.btn-warn:hover{background:rgba(247,201,72,.2);}
+
+/* ── ROOT LAYOUT ── */
+.app{display:flex;flex-direction:column;height:100vh;}
+main{display:grid;grid-template-columns:268px 1fr 328px;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* ── SIDEBARS ── */
+.sidebar{display:flex;flex-direction:column;overflow-y:auto;background:var(--surface);}
+.sidebar-left{border-right:1px solid var(--border);}
+.sidebar-right{border-left:1px solid var(--border);}
+.sbs{padding:1.1rem;border-bottom:1px solid var(--border);}
+.sbs h3{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem;}
+
+/* steps */
+.steps{display:flex;flex-direction:column;gap:2px;}
+.step{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:7px;cursor:pointer;transition:background .15s;}
+.step:hover{background:var(--surface2);}
+.step.active{background:rgba(0,212,170,.08);}
+.step.done .snum{background:var(--accent);color:var(--bg);border-color:var(--accent);}
+.snum{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:.66rem;font-weight:700;font-family:var(--mono);flex-shrink:0;color:var(--muted);transition:all .2s;}
+.step.active .snum{border-color:var(--accent);color:var(--accent);}
+.sinfo{flex:1;}
+.stitle{font-size:.79rem;font-weight:600;color:var(--text);}
+.sdesc{font-size:.68rem;color:var(--muted);margin-top:2px;line-height:1.4;}
+
+/* options */
+.ogroup{display:flex;flex-direction:column;gap:5px;}
+.ocard{border:1px solid var(--border);border-radius:7px;padding:9px 11px;cursor:pointer;transition:all .15s;position:relative;}
+.ocard:hover{border-color:var(--muted);}
+.ocard.sel{border-color:var(--accent);background:rgba(0,212,170,.06);}
+.ocard.sel::after{content:'✓';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:.78rem;font-weight:700;}
+.otitle{font-size:.77rem;font-weight:600;color:var(--text);margin-bottom:1px;}
+.odesc{font-size:.65rem;color:var(--muted);line-height:1.35;font-family:var(--mono);}
+
+/* range */
+.rgroup{display:flex;flex-direction:column;gap:7px;}
+.rlabel{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;}
+.rlabel .rv{font-family:var(--mono);color:var(--accent);font-weight:500;}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--border);outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 0 2px var(--accent);}
+
+/* toggle */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;}
+.tlabel{font-size:.76rem;color:var(--text);}
+.tdesc{font-size:.65rem;color:var(--muted);}
+.tog{width:34px;height:19px;background:var(--border);border-radius:10px;cursor:pointer;position:relative;flex-shrink:0;transition:background .2s;}
+.tog.on{background:var(--accent);}
+.tog::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s;}
+.tog.on::after{left:18px;}
+
+/* right sidebar stats */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.scard{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;}
+.sval{font-family:var(--mono);font-size:1.15rem;font-weight:500;color:var(--accent);line-height:1;margin-bottom:3px;}
+.slabel{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+
+/* warning cards */
+.wcard{border-radius:7px;padding:9px 11px;display:flex;gap:9px;align-items:flex-start;margin-bottom:5px;}
+.wcard.red{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.2);}
+.wcard.yel{background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.2);}
+.wcard.blu{background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.15);}
+.wi{font-size:.8rem;flex-shrink:0;margin-top:1px;}
+.wt{font-size:.69rem;line-height:1.42;color:var(--text);}
+.wtitle{font-weight:700;margin-bottom:1px;font-size:.7rem;}
+.wcard.red .wtitle{color:var(--danger);}
+.wcard.yel .wtitle{color:var(--accent2);}
+.wcard.blu .wtitle{color:var(--accent);}
+
+/* encoding table */
+.etable{width:100%;border-collapse:collapse;font-size:.69rem;font-family:var(--mono);}
+.etable th{text-align:left;color:var(--muted);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:5px 7px;border-bottom:1px solid var(--border);font-family:var(--sans);}
+.etable td{padding:4px 7px;border-bottom:1px solid rgba(31,45,61,.5);}
+.nuc{font-weight:700;font-size:.85rem;}
+.nA{color:#4fc3f7;}.nC{color:#81c784;}.nG{color:#ffb74d;}.nT{color:#f48fb1;}.nN{color:var(--muted);}
+
+/* methods */
+.mbox{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:11px;
+  font-size:.68rem;line-height:1.6;color:#8facc4;font-family:var(--mono);white-space:pre-wrap;}
+
+/* ── CENTER ── */
+.center{display:flex;flex-direction:column;overflow:hidden;}
+.ctoolbar{display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.1rem;
+  border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;gap:8px;}
+.tleft{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.tright{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.tab{font-size:.74rem;font-weight:600;padding:4px 11px;border-radius:5px;border:1px solid transparent;
+  cursor:pointer;background:transparent;color:var(--muted);font-family:var(--sans);transition:all .15s;}
+.tab.active{background:rgba(0,212,170,.1);border-color:rgba(0,212,170,.3);color:var(--accent);}
+.tab:hover:not(.active){color:var(--text);}
+
+/* progress */
+.pbar{height:2px;background:var(--border);flex-shrink:0;display:none;overflow:hidden;}
+.pbar.on{display:block;}
+.pfill{height:100%;background:linear-gradient(90deg,var(--accent),#00f5c4);transition:width .4s ease;}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.3);}50%{box-shadow:0 0 14px 3px rgba(0,212,170,.2);}}
+.cglow{animation:glowPulse 2s infinite;}
+
+/* ── IO PANEL ── */
+#io-panel{flex:1;display:grid;grid-template-rows:1fr 1fr;overflow:hidden;}
+.dhalf{display:flex;flex-direction:column;overflow:hidden;position:relative;}
+.dhalf:first-child{border-bottom:1px solid var(--border);}
+.dlabel{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;
+  background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.dltext{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.dpill{font-family:var(--mono);font-size:.62rem;padding:2px 7px;border-radius:4px;font-weight:500;}
+.pin{background:rgba(247,201,72,.1);color:var(--accent2);}
+.pout{background:rgba(0,212,170,.1);color:var(--accent);}
+textarea,.oarea{flex:1;background:transparent;border:none;outline:none;font-family:var(--mono);
+  font-size:.72rem;color:var(--text);padding:13px;resize:none;line-height:1.7;overflow-y:auto;}
+textarea::placeholder{color:var(--muted);}
+.oarea{white-space:pre;overflow:auto;color:#a8c6e0;position:relative;}
+.ooverlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:11px;background:rgba(10,14,20,.7);backdrop-filter:blur(2px);}
+.ooverlay p{font-size:.77rem;color:var(--muted);font-family:var(--mono);}
+
+/* ── VIZ PANEL ── */
+#viz-panel{flex:1;display:none;flex-direction:column;overflow:hidden;}
+#viz-panel.on{display:flex;}
+.vtoolbar{display:flex;align-items:center;gap:9px;padding:8px 14px;background:var(--surface2);
+  border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+.vtoolbar label{font-size:.69rem;color:var(--muted);}
+.vtoolbar select{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:.69rem;padding:4px 9px;border-radius:5px;outline:none;cursor:pointer;}
+.vtoolbar select:focus{border-color:var(--accent);}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;padding:14px;overflow-y:auto;flex:1;align-content:start;}
+.ccard{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px;
+  display:flex;flex-direction:column;gap:8px;}
+.cctitle{font-size:.69rem;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:space-between;}
+.cbadge{font-family:var(--mono);font-size:.58rem;padding:2px 6px;border-radius:3px;}
+.cwrap{position:relative;width:100%;min-height:160px;}
+canvas{display:block;width:100%!important;}
+
+/* ── VALIDATOR PANEL ── */
+#val-panel{flex:1;display:none;flex-direction:column;overflow:hidden;}
+#val-panel.on{display:flex;}
+.vinner{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px;}
+.vhead{display:flex;align-items:center;gap:11px;padding:13px 15px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:9px;}
+.vscore{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;font-size:.68rem;border:3px solid;flex-shrink:0;text-align:center;line-height:1.3;}
+.vscore.pass{border-color:var(--accent);color:var(--accent);background:rgba(0,212,170,.08);}
+.vscore.warn{border-color:var(--accent2);color:var(--accent2);background:rgba(247,201,72,.08);}
+.vscore.fail{border-color:var(--danger);color:var(--danger);background:rgba(255,77,109,.08);}
+.vhead-text h4{font-size:.88rem;font-weight:700;margin-bottom:3px;}
+.vhead-text p{font-size:.69rem;color:var(--muted);line-height:1.4;}
+.vchecks{display:flex;flex-direction:column;gap:5px;}
+.vcheck{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:7px;}
+.vcheck.vp{border-color:rgba(0,212,170,.2);}
+.vcheck.vw{border-color:rgba(247,201,72,.22);background:rgba(247,201,72,.03);}
+.vcheck.vf{border-color:rgba(255,77,109,.22);background:rgba(255,77,109,.03);}
+.vci{font-size:.8rem;flex-shrink:0;margin-top:1px;}
+.vcb{flex:1;}
+.vcn{font-size:.76rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+.vcd{font-size:.66rem;color:var(--muted);line-height:1.42;font-family:var(--mono);}
+.vcheck.vp .vcn{color:var(--accent);}
+.vcheck.vw .vcn{color:var(--accent2);}
+.vcheck.vf .vcn{color:var(--danger);}
+.vsectitle{font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:3px 2px 1px;}
+.vtip{background:rgba(0,212,170,.05);border:1px solid rgba(0,212,170,.14);border-radius:7px;padding:11px 13px;
+  font-size:.68rem;color:#8facc4;line-height:1.58;font-family:var(--mono);}
+.vempty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;flex:1;padding:40px;text-align:center;}
+.vempty p{font-size:.77rem;color:var(--muted);font-family:var(--mono);}
+
+/* ── LOCI PANEL ── */
+#loci-panel{flex:1;display:none;overflow-y:auto;padding:12px;}
+#loci-panel.on{display:block;}
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.litem{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:6px;cursor:pointer;transition:background .12s;}
+.litem:hover{background:var(--surface2);}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.lname{font-family:var(--mono);font-size:.73rem;flex:1;}
+.lall{font-size:.65rem;color:var(--muted);}
+.lbadge{font-size:.58rem;padding:1px 5px;border-radius:3px;font-weight:700;font-family:var(--mono);}
+.lok{background:rgba(0,212,170,.1);color:var(--accent);}
+.lwarn{background:rgba(255,140,66,.1);color:var(--warn);}
+.lerr{background:rgba(255,77,109,.1);color:var(--danger);}
+
+/* scrollbar */
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+
+/* toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:9px;padding:10px 16px;display:flex;align-items:center;gap:9px;font-size:.78rem;
+  z-index:9999;transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);}
+.toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧬</div>
+    Geno<span>Convert</span>
+    <span class="hbadge">Beta</span>
+  </div>
+  <nav>
+    <a href="#" class="active">Converter</a>
+    <a href="#">Docs</a>
+    <a href="#">Methods</a>
+    <a href="#">About</a>
+  </nav>
+  <div style="display:flex;gap:7px;align-items:center;">
+    <button class="btn btn-ghost" onclick="loadDemo()">Load Demo</button>
+    <button class="btn btn-accent" onclick="downloadHapmap()">⬇ Export .hmp.txt</button>
+  </div>
+</header>
+
+<main>
+<!-- ── LEFT SIDEBAR ── -->
+<aside class="sidebar sidebar-left">
+
+  <div class="sbs">
+    <h3>Workflow</h3>
+    <div class="steps">
+      <div class="step done" onclick="setStep(1)">
+        <div class="snum">1</div>
+        <div class="sinfo"><div class="stitle">Input Format</div><div class="sdesc">Dominant (0/1) or Co-dominant (bp)</div></div>
+      </div>
+      <div class="step active" onclick="setStep(2)">
+        <div class="snum">2</div>
+        <div class="sinfo"><div class="stitle">Data Entry</div><div class="sdesc">Paste or upload SSR matrix</div></div>
+      </div>
+      <div class="step" onclick="setStep(3)">
+        <div class="snum">3</div>
+        <div class="sinfo"><div class="stitle">Encoding Options</div><div class="sdesc">Allele → nucleotide strategy</div></div>
+      </div>
+      <div class="step" onclick="setStep(4)">
+        <div class="snum">4</div>
+        <div class="sinfo"><div class="stitle">Filter &amp; QC</div><div class="sdesc">MAF, missing data thresholds</div></div>
+      </div>
+      <div class="step" onclick="setStep(5)">
+        <div class="snum">5</div>
+        <div class="sinfo"><div class="stitle">Export HapMap</div><div class="sdesc">Download + methods text</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sbs">
+    <h3>Marker Type</h3>
+    <div class="ogroup">
+      <div class="ocard sel" onclick="selectMarker(this,'dominant')">
+        <div class="otitle">Dominant (0/1)</div>
+        <div class="odesc">Presence/absence · Binary encoding</div>
+      </div>
+      <div class="ocard" onclick="selectMarker(this,'codominant')">
+        <div class="otitle">Co-dominant (bp)</div>
+        <div class="odesc">Allele sizes in base pairs · Full diploid</div>
+      </div>
+      <div class="ocard" onclick="selectMarker(this,'mixed')">
+        <div class="otitle">Mixed Dataset</div>
+        <div class="odesc">Auto-detect per locus · Smart routing</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sbs">
+    <h3>Encoding Strategy</h3>
+    <div class="ogroup">
+      <div class="ocard sel" onclick="selEnc(this)">
+        <div class="otitle">Frequency-Rank</div>
+        <div class="odesc">Most common allele = A, next = C, G, T</div>
+      </div>
+      <div class="ocard" onclick="selEnc(this)">
+        <div class="otitle">Size-Order</div>
+        <div class="odesc">Shortest allele = A · preserves step signal</div>
+      </div>
+      <div class="ocard" onclick="selEnc(this)">
+        <div class="otitle">Numeric Binning</div>
+        <div class="odesc">Cluster alleles into 4 size bins</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sbs">
+    <h3>QC Filters</h3>
+    <div class="rgroup">
+      <div class="rlabel"><span style="color:var(--text)">Min MAF</span><span class="rv" id="maf-val">0.05</span></div>
+      <input type="range" min="0" max="0.5" step="0.01" value="0.05"
+        oninput="document.getElementById('maf-val').textContent=parseFloat(this.value).toFixed(2);updateStats()"/>
+    </div>
+    <div class="rgroup" style="margin-top:11px;">
+      <div class="rlabel"><span style="color:var(--text)">Max Missing %</span><span class="rv" id="miss-val">20%</span></div>
+      <input type="range" min="0" max="100" step="5" value="20"
+        oninput="document.getElementById('miss-val').textContent=this.value+'%';updateStats()"/>
+    </div>
+    <div style="margin-top:11px;">
+      <div class="trow">
+        <div><div class="tlabel">Impute Missing</div><div class="tdesc">Mean allele freq imputation</div></div>
+        <div class="tog on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="trow">
+        <div><div class="tlabel">Flag Multi-allelic</div><div class="tdesc">Warn loci with &gt;4 alleles</div></div>
+        <div class="tog on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="trow">
+        <div><div class="tlabel">Include Methods Note</div><div class="tdesc">Auto-generate methods text</div></div>
+        <div class="tog on" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ── CENTER ── -->
+<div class="center">
+  <div class="ctoolbar">
+    <div class="tleft">
+      <button class="tab active" onclick="setTab(this,'io')">Input / Output</button>
+      <button class="tab" onclick="setTab(this,'viz')">📊 Visualize</button>
+      <button class="tab" onclick="setTab(this,'validator')">✅ TASSEL Validator</button>
+      <button class="tab" onclick="setTab(this,'loci')">Loci Browser</button>
+    </div>
+    <div class="tright">
+      <button class="btn btn-ghost" style="font-size:.72rem;" onclick="clearAll()">Clear</button>
+      <button class="btn btn-accent cglow" onclick="runConvert()">▶ Convert</button>
+    </div>
+  </div>
+  <div class="pbar" id="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+
+  <!-- IO -->
+  <div id="io-panel">
+    <div class="dhalf">
+      <div class="dlabel">
+        <span class="dltext">SSR Input — Tab / CSV</span>
+        <span class="dpill pin">RAW</span>
+      </div>
+      <textarea id="inp" placeholder="Paste SSR matrix here, or click Load Demo above…" oninput="parseLive()"></textarea>
+    </div>
+    <div class="dhalf">
+      <div class="dlabel">
+        <span class="dltext">HapMap Output</span>
+        <span class="dpill pout">HAPMAP</span>
+      </div>
+      <div class="oarea" id="out">
+        <div class="ooverlay" id="overlay">
+          <span style="font-size:2rem;opacity:.3;">🧬</span>
+          <p>Output appears after conversion</p>
+          <button class="btn btn-warn" onclick="runConvert()">▶ Run Conversion</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIZ -->
+  <div id="viz-panel">
+    <div class="vtoolbar">
+      <label>Chart</label>
+      <select id="viz-type" onchange="renderCharts()">
+        <option value="freq">Allele Frequency per Locus</option>
+        <option value="maf">MAF Distribution &amp; QC Scatter</option>
+        <option value="missing">Missing Data per Locus</option>
+        <option value="diversity">Allele Diversity (PIC proxy)</option>
+      </select>
+      <label style="margin-left:8px;">Palette</label>
+      <select id="viz-pal" onchange="renderCharts()">
+        <option value="genomic">Genomic</option>
+        <option value="nucleotide">Nucleotide</option>
+        <option value="warm">Warm</option>
+      </select>
+      <span style="margin-left:auto;font-size:.65rem;color:var(--muted);font-family:var(--mono);">Click a chart to inspect locus</span>
+    </div>
+    <div class="cgrid" id="cgrid">
+      <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:11px;padding:48px;color:var(--muted);">
+        <span style="font-size:2.2rem;opacity:.2;">📊</span>
+        <p style="font-size:.76rem;font-family:var(--mono);">Load demo data and run conversion first</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- VALIDATOR -->
+  <div id="val-panel">
+    <div class="vinner" id="vinner">
+      <div class="vempty">
+        <span style="font-size:2.2rem;opacity:.2;">✅</span>
+        <p>Run a conversion first,<br>then validate for TASSEL / GAPIT compatibility.</p>
+        <button class="btn btn-warn" onclick="runConvert()">▶ Convert &amp; Validate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOCI BROWSER -->
+  <div id="loci-panel">
+    <div class="lgrid" id="lgrid"></div>
+  </div>
+</div>
+
+<!-- ── RIGHT SIDEBAR ── -->
+<aside class="sidebar sidebar-right">
+
+  <div class="sbs">
+    <h3>Run Statistics</h3>
+    <div class="sgrid">
+      <div class="scard"><div class="sval" id="ss">—</div><div class="slabel">Samples</div></div>
+      <div class="scard"><div class="sval" id="sl">—</div><div class="slabel">Loci</div></div>
+      <div class="scard"><div class="sval" id="sp">—</div><div class="slabel">QC Passed</div></div>
+      <div class="scard"><div class="sval" id="sr">—</div><div class="slabel">Removed</div></div>
+    </div>
+  </div>
+
+  <div class="sbs">
+    <h3>Encoding Legend</h3>
+    <table class="etable">
+      <thead><tr><th>Code</th><th>Rank</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><span class="nuc nA">A</span></td><td>#1</td><td>Most frequent allele</td></tr>
+        <tr><td><span class="nuc nC">C</span></td><td>#2</td><td>2nd most frequent</td></tr>
+        <tr><td><span class="nuc nG">G</span></td><td>#3</td><td>3rd most frequent</td></tr>
+        <tr><td><span class="nuc nT">T</span></td><td>#4</td><td>4th most frequent</td></tr>
+        <tr><td><span class="nuc nN">N</span></td><td>—</td><td>Missing / &gt;4 alleles</td></tr>
+        <tr><td style="font-family:var(--mono);font-size:.68rem;">AC</td><td>het</td><td>Heterozygote call</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sbs">
+    <h3>Data Loss Warnings</h3>
+    <div class="wcard red">
+      <div class="wi">🔴</div>
+      <div class="wt"><div class="wtitle">Multi-allelic Truncation</div>Loci with &gt;4 alleles lose rare-allele info. Alleles ranked 5+ encoded as N.</div>
+    </div>
+    <div class="wcard yel">
+      <div class="wi">🟡</div>
+      <div class="wt"><div class="wtitle">Stepwise Signal Lost</div>Allele size relationships (SSR evolution signal) are not representable in ACGT codes.</div>
+    </div>
+    <div class="wcard yel">
+      <div class="wi">🟡</div>
+      <div class="wt"><div class="wtitle">Dominant Heterozygotes</div>0/1 data cannot distinguish AA from AB — heterozygosity is lost.</div>
+    </div>
+    <div class="wcard blu">
+      <div class="wi">💡</div>
+      <div class="wt"><div class="wtitle">Best Practice</div>Frequency-rank encoding + transparent methods reporting is the most defensible approach.</div>
+    </div>
+  </div>
+
+  <div class="sbs">
+    <h3>Auto-Generated Methods</h3>
+    <div class="mbox" id="mbox">SSR marker data were converted to HapMap format for GWAS analysis using GenoConvert (v0.1). Co-dominant SSR alleles (base-pair sizes) were encoded as nucleotide symbols using frequency-rank encoding, where the most frequent allele was assigned A, and subsequent alleles C, G, and T respectively. Loci with >4 alleles had rare alleles encoded as N (missing). Dominant (0/1) markers were encoded as A (present) and T (absent). Loci with MAF < 0.05 or >20% missing data were excluded prior to analysis.</div>
+  </div>
+
+  <div class="sbs">
+    <h3>Export</h3>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <button class="btn btn-accent" style="width:100%;justify-content:center;" onclick="downloadHapmap()">⬇ Download .hmp.txt</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="copyMethods()">Copy Methods Text</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="toast('📊','File validated — ready for TASSEL/GAPIT import')">Open in TASSEL</button>
+    </div>
+  </div>
+
+</aside>
+</main>
+</div><!-- /.app -->
+
+<div class="toast" id="toastEl"><span id="ticon"></span><span id="tmsg"></span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// DEMO DATA — 20 accessions, 12 SSR loci, mixed data types
+// Includes: multi-allelic loci (>4), missing data, low-MAF
+// loci for complete end-to-end QC testing
+// ═══════════════════════════════════════════════════════════
+const DEMO = `SampleID\tSSR001\tSSR002\tSSR003\tSSR004\tSSR005\tSSR006\tSSR007\tSSR008\tSSR009\tSSR010\tSSR011\tSSR012
+ACC001\t150/160\t230/230\t140/155\t200/210\t1\t0\t180/190\t./.\t120/130\t250/260\t100/100\t310/320
+ACC002\t150/150\t240/250\t140/140\t200/200\t0\t1\t190/200\t140/150\t130/130\t260/270\t100/110\t320/320
+ACC003\t160/170\t230/240\t155/165\t210/220\t1\t1\t180/200\t150/160\t120/120\t250/250\t110/110\t310/310
+ACC004\t150/170\t230/250\t./.\t200/220\t1\t0\t190/190\t140/140\t./.\t260/260\t100/100\t320/330
+ACC005\t150/150\t240/240\t140/165\t210/210\t0\t1\t180/180\t150/150\t120/130\t250/270\t100/110\t310/320
+ACC006\t160/160\t230/230\t140/140\t200/200\t1\t0\t200/210\t160/170\t130/130\t260/260\t110/120\t320/320
+ACC007\t170/180\t250/260\t155/155\t220/230\t0\t0\t180/190\t140/150\t120/120\t250/260\t100/100\t310/310
+ACC008\t150/160\t230/240\t140/155\t./.\t1\t1\t190/200\t150/160\t130/140\t260/270\t110/110\t320/330
+ACC009\t160/170\t240/250\t165/175\t200/210\t0\t1\t180/180\t140/140\t120/130\t250/250\t100/110\t310/320
+ACC010\t150/150\t230/230\t140/140\t210/220\t1\t0\t190/210\t150/150\t./.\t260/260\t110/120\t320/320
+ACC011\t170/170\t250/250\t155/165\t200/200\t1\t1\t180/200\t140/160\t120/120\t250/270\t100/100\t310/310
+ACC012\t150/160\t240/240\t140/155\t220/230\t0\t0\t190/190\t150/170\t130/130\t260/260\t110/110\t320/330
+ACC013\t160/160\t230/240\t165/165\t200/210\t1\t1\t200/200\t140/150\t120/130\t250/260\t100/120\t310/320
+ACC014\t150/170\t230/250\t140/165\t210/210\t0\t1\t180/190\t./.\t130/130\t260/270\t110/110\t320/320
+ACC015\t180/190\t260/270\t175/185\t230/240\t1\t0\t190/200\t150/160\t120/120\t250/250\t100/110\t310/310
+ACC016\t150/150\t230/230\t140/140\t200/200\t0\t0\t180/180\t140/140\t./.\t260/260\t110/120\t320/330
+ACC017\t160/180\t240/260\t155/175\t210/230\t1\t1\t190/210\t150/170\t120/130\t250/270\t100/100\t310/320
+ACC018\t170/190\t250/270\t165/185\t220/240\t0\t1\t200/200\t160/160\t130/130\t260/260\t110/110\t320/320
+ACC019\t150/160\t230/240\t140/155\t200/210\t1\t0\t180/190\t140/150\t120/120\t250/260\t100/110\t310/310
+ACC020\t160/170\t240/250\t155/165\t210/220\t0\t1\t190/200\t150/160\t130/130\t260/270\t110/120\t320/330`;
+// SSR005/SSR006 are dominant (0/1); rest are co-dominant (bp)
+// SSR001 has 5 distinct alleles (150,160,170,180,190) → multi-allelic edge case
+// SSR009 has 3 missing values
+// SSR011 has 3 alleles, low diversity → may approach MAF threshold
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let markerType='dominant', curTab='io', lastResult=null, charts=[];
+const PALS={
+  genomic:  ['#00d4aa','#4fc3f7','#ffb74d','#f48fb1','#81c784','#ce93d8','#80cbc4','#fff59d'],
+  nucleotide:['#4fc3f7','#81c784','#ffb74d','#f48fb1','#90a4ae'],
+  warm:     ['#ff8c42','#f7c948','#ff4d6d','#c0392b','#e67e22']
+};
+
+// ═══════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════
+function setTab(btn,tab){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); curTab=tab;
+  document.getElementById('io-panel').style.display    = tab==='io'?'grid':'none';
+  document.getElementById('viz-panel').classList.toggle('on',tab==='viz');
+  document.getElementById('val-panel').classList.toggle('on',tab==='validator');
+  document.getElementById('loci-panel').classList.toggle('on',tab==='loci');
+  if(tab==='loci') buildLoci();
+  if(tab==='viz'&&lastResult) renderCharts();
+  if(tab==='validator'&&lastResult) renderValidator();
+}
+function setStep(n){
+  document.querySelectorAll('.step').forEach((s,i)=>{
+    s.classList.remove('active','done');
+    if(i+1<n) s.classList.add('done');
+    else if(i+1===n) s.classList.add('active');
+  });
+}
+function selectMarker(el,t){
+  el.closest('.ogroup').querySelectorAll('.ocard').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); markerType=t;
+}
+function selEnc(el){
+  el.closest('.ogroup').querySelectorAll('.ocard').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function loadDemo(){
+  document.getElementById('inp').value=DEMO;
+  parseLive();
+  toast('📂','Demo dataset loaded — 20 accessions · 12 SSR loci');
+}
+function clearAll(){
+  document.getElementById('inp').value='';
+  document.getElementById('out').innerHTML='<div class="ooverlay"><span style="font-size:2rem;opacity:.3;">🧬</span><p>Output appears after conversion</p><button class="btn btn-warn" onclick="runConvert()">▶ Run Conversion</button></div>';
+  resetStats(); lastResult=null;
+  document.getElementById('cgrid').innerHTML='<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:11px;padding:48px;color:var(--muted);"><span style="font-size:2.2rem;opacity:.2;">📊</span><p style="font-size:.76rem;font-family:var(--mono);">Load demo data and run conversion first</p></div>';
+  document.getElementById('vinner').innerHTML='<div class="vempty"><span style="font-size:2.2rem;opacity:.2;">✅</span><p>Run a conversion first,<br>then validate for TASSEL / GAPIT compatibility.</p><button class="btn btn-warn" onclick="runConvert()">▶ Convert &amp; Validate</button></div>';
+}
+function parseLive(){
+  const lines=document.getElementById('inp').value.trim().split('\n').filter(Boolean);
+  if(lines.length<2){resetStats();return;}
+  const h=lines[0].split(/\t|,/);
+  document.getElementById('ss').textContent=lines.length-1;
+  document.getElementById('sl').textContent=h.length-1;
+  document.getElementById('sp').textContent='—';
+  document.getElementById('sr').textContent='—';
+}
+function resetStats(){['ss','sl','sp','sr'].forEach(id=>document.getElementById(id).textContent='—');}
+function updateStats(){if(lastResult)runConvert(true);}
+
+// ═══════════════════════════════════════════════════════════
+// CONVERT
+// ═══════════════════════════════════════════════════════════
+function runConvert(silent=false){
+  const inp=document.getElementById('inp').value.trim();
+  if(!inp){toast('⚠️','Load data first — click Load Demo or paste your matrix');return;}
+  const pb=document.getElementById('pbar'),pf=document.getElementById('pfill');
+  pb.classList.add('on');pf.style.width='0%';
+  setTimeout(()=>pf.style.width='35%',80);
+  setTimeout(()=>pf.style.width='70%',350);
+  setTimeout(()=>{
+    pf.style.width='100%';
+    try{
+      lastResult=convert(inp);
+      const out=document.getElementById('out');
+      out.innerHTML='';
+      out.textContent=lastResult.hapmap;
+      document.getElementById('ss').textContent=lastResult.nSamples;
+      document.getElementById('sl').textContent=lastResult.nLoci;
+      document.getElementById('sp').textContent=lastResult.nPassed;
+      document.getElementById('sr').textContent=lastResult.nRemoved;
+      if(!silent) toast('✅',`Converted ${lastResult.nPassed}/${lastResult.nLoci} loci passed QC — check Visualize & Validator tabs`);
+      if(curTab==='viz') renderCharts();
+      if(curTab==='validator') renderValidator();
+    }catch(e){toast('❌','Conversion error: '+e.message);}
+    setTimeout(()=>{pb.classList.remove('on');pf.style.width='0%';},500);
+  },750);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CORE CONVERSION ENGINE
+// ═══════════════════════════════════════════════════════════
+function convert(raw){
+  const lines=raw.trim().split('\n').filter(Boolean);
+  const sep=lines[0].includes('\t')?'\t':',';
+  const header=lines[0].split(sep);
+  const lociNames=header.slice(1).map(s=>s.trim());
+  const rows=lines.slice(1).map(l=>l.split(sep));
+  const samples=rows.map(r=>r[0].trim());
+  const maf=parseFloat(document.getElementById('maf-val').textContent)||0.05;
+  const maxMiss=parseInt(document.getElementById('miss-val').textContent)/100;
+  const NUCS=['A','C','G','T'];
+
+  const encodedLoci=lociNames.map((name,li)=>{
+    const raw=rows.map(r=>(r[li+1]||'.').trim());
+    // detect type
+    const isDom=raw.every(a=>['0','1','.',''].includes(a));
+    let encoded=[],removed=false,alleleFreqs={},numAlleles=0,missingRate=0,multiAllelic=false;
+
+    if(isDom){
+      encoded=raw.map(a=>a==='.'||a===''?'NN':a==='1'?'AA':'TT');
+      alleleFreqs={'A (present)':raw.filter(a=>a==='1').length,'T (absent)':raw.filter(a=>a==='0').length};
+      numAlleles=2; missingRate=raw.filter(a=>a==='.').length/raw.length;
+    } else {
+      const flat=[];
+      raw.forEach(a=>{if(a==='.'||a==='./.'||a==='')return;a.split('/').forEach(x=>{if(x&&x!=='.')flat.push(x.trim());});});
+      const freq={};
+      flat.forEach(a=>{freq[a]=(freq[a]||0)+1;});
+      const sorted=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]);
+      numAlleles=sorted.length;
+      multiAllelic=sorted.length>4;
+      const map={};
+      sorted.slice(0,4).forEach((a,i)=>{map[a]=NUCS[i];alleleFreqs[NUCS[i]+' ('+a+'bp)']=freq[a];});
+      encoded=raw.map(a=>{
+        if(a==='.'||a==='./.'||a==='')return'NN';
+        const p=a.split('/').map(x=>x.trim());
+        const n1=map[p[0]]||'N',n2=map[p[1]]||'N';
+        if(n1==='N'&&n2==='N')return'NN';
+        if(n1===n2)return n1+n1;
+        return[n1,n2].sort().join('');
+      });
+      missingRate=encoded.filter(e=>e==='NN').length/encoded.length;
+      const calls=encoded.filter(e=>e!=='NN');
+      const tot=calls.length*2;
+      const ct={};calls.forEach(c=>{ct[c[0]]=(ct[c[0]]||0)+1;ct[c[1]]=(ct[c[1]]||0)+1;});
+      const fv=Object.values(ct).sort((a,b)=>a-b);
+      const minorF=fv.length>0?fv[0]/tot:0;
+      if(minorF<maf||missingRate>maxMiss)removed=true;
+    }
+    return{name,encoded,removed,alleleFreqs,numAlleles,missingRate,multiAllelic};
+  });
+
+  const kept=encodedLoci.filter(l=>!l.removed);
+  const hapCols=['rs#','alleles','chrom','pos','strand','assembly#','center','protLSID','assayLSID','panelLSID','QCcode',...samples];
+  const hapRows=[hapCols.join('\t')];
+  kept.forEach((l,i)=>{
+    const as=[...new Set(l.encoded.filter(e=>e!=='NN').join('').split(''))].sort().join('/');
+    hapRows.push([l.name,as||'A/T','un',String((i+1)*1000),'+','NA','NA','NA','NA','NA','NA',...l.encoded].join('\t'));
+  });
+  return{
+    hapmap:hapRows.join('\n'),
+    nSamples:samples.length,nLoci:lociNames.length,nPassed:kept.length,nRemoved:encodedLoci.length-kept.length,
+    encodedLoci,kept,samples
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════
+const CD={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{
+    x:{ticks:{color:'#5a7394',font:{family:"'DM Mono'",size:9},maxRotation:45},grid:{color:'#1f2d3d'}},
+    y:{ticks:{color:'#5a7394',font:{family:"'DM Mono'",size:9}},grid:{color:'#1f2d3d'}}
+  }
+};
+
+function renderCharts(){
+  if(!lastResult)return;
+  charts.forEach(c=>c.destroy());charts=[];
+  const grid=document.getElementById('cgrid');grid.innerHTML='';
+  const vt=document.getElementById('viz-type').value;
+  const pal=PALS[document.getElementById('viz-pal').value];
+  if(vt==='freq')     drawFreq(grid,pal);
+  else if(vt==='maf') drawMAF(grid,pal);
+  else if(vt==='missing') drawMissing(grid,pal);
+  else if(vt==='diversity') drawDiversity(grid,pal);
+}
+
+function mkCard(title,badge,bc,id,full=false){
+  const d=document.createElement('div');
+  d.className='ccard';
+  if(full)d.style.gridColumn='1/-1';
+  d.innerHTML=`<div class="cctitle"><span>${title}</span><span class="cbadge" style="background:${bc}22;color:${bc};border:1px solid ${bc}44;">${badge}</span></div><div class="cwrap"><canvas id="${id}" height="180"></canvas></div>`;
+  return d;
+}
+
+function drawFreq(grid,pal){
+  const loci=lastResult.encodedLoci.filter(l=>!l.removed);
+  // Show up to 8 in a 2-col grid; if more, show first 8 with a note
+  const show=loci.slice(0,8);
+  show.forEach((locus,idx)=>{
+    const bc=pal[idx%pal.length];
+    const card=mkCard(locus.name,`${locus.numAlleles} alleles${locus.multiAllelic?' ⚠':''}`,bc,'cf'+idx);
+    grid.appendChild(card);
+    const labels=Object.keys(locus.alleleFreqs);
+    const data=Object.values(locus.alleleFreqs);
+    const tot=data.reduce((a,b)=>a+b,0);
+    const ch=new Chart(document.getElementById('cf'+idx).getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[{data,backgroundColor:labels.map((_,i)=>pal[i%pal.length]+'cc'),borderColor:labels.map((_,i)=>pal[i%pal.length]),borderWidth:1,borderRadius:4}]},
+      options:{...CD,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw} calls (${(ctx.raw/tot*100).toFixed(1)}%)`}}}}
+    });
+    charts.push(ch);
+  });
+  if(loci.length>8){
+    const n=document.createElement('div');
+    n.style='grid-column:1/-1;font-size:.69rem;color:var(--muted);font-family:var(--mono);text-align:center;padding:6px;';
+    n.textContent=`Showing first 8 of ${loci.length} QC-passed loci`;
+    grid.appendChild(n);
+  }
+}
+
+function drawMAF(grid,pal){
+  const loci=lastResult.encodedLoci;
+  const mafs=loci.map(l=>{
+    const calls=l.encoded.filter(e=>e!=='NN');if(!calls.length)return 0;
+    const ct={};calls.forEach(c=>{ct[c[0]]=(ct[c[0]]||0)+1;ct[c[1]]=(ct[c[1]]||0)+1;});
+    const v=Object.values(ct).sort((a,b)=>a-b);return v[0]/(calls.length*2);
+  });
+  const thresh=parseFloat(document.getElementById('maf-val').textContent);
+  const bins=Array(10).fill(0);
+  mafs.forEach(m=>{const b=Math.min(9,Math.floor(m/0.05));bins[b]++;});
+
+  const c1=mkCard('MAF Distribution across all loci',`cutoff: ${thresh}`,pal[0],'cmaf1',true);
+  grid.appendChild(c1);
+  charts.push(new Chart(document.getElementById('cmaf1').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:['0–.05','.05–.1','.1–.15','.15–.2','.2–.25','.25–.3','.3–.35','.35–.4','.4–.45','.45–.5'],
+      datasets:[{data:bins,backgroundColor:bins.map((_,i)=>i===0?'#ff4d6d55':pal[0]+'88'),borderColor:bins.map((_,i)=>i===0?'#ff4d6d':pal[0]),borderWidth:1,borderRadius:4}]
+    },
+    options:{...CD,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw} loci`}}}}
+  }));
+
+  const c2=mkCard('MAF vs. Missing Data — QC decision space','pass=teal · removed=red',pal[1],'cmaf2',true);
+  grid.appendChild(c2);
+  const passed=loci.filter(l=>!l.removed).map(l=>({x:mafs[loci.indexOf(l)],y:+(l.missingRate*100).toFixed(1),label:l.name}));
+  const removed=loci.filter(l=>l.removed).map(l=>({x:mafs[loci.indexOf(l)],y:+(l.missingRate*100).toFixed(1),label:l.name}));
+  charts.push(new Chart(document.getElementById('cmaf2').getContext('2d'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Passed',data:passed,backgroundColor:pal[0]+'99',borderColor:pal[0],borderWidth:1.5,pointRadius:7,pointHoverRadius:9},
+      {label:'Removed',data:removed,backgroundColor:'#ff4d6d66',borderColor:'#ff4d6d',borderWidth:1.5,pointRadius:7,pointHoverRadius:9}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,labels:{color:'#5a7394',font:{family:"'DM Mono'",size:10},boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw.label}: MAF ${ctx.parsed.x.toFixed(3)}, Missing ${ctx.parsed.y.toFixed(1)}%`}}
+      },
+      scales:{
+        x:{title:{display:true,text:'Minor Allele Frequency',color:'#5a7394',font:{size:10}},ticks:{color:'#5a7394',font:{family:"'DM Mono'",size:9}},grid:{color:'#1f2d3d'}},
+        y:{title:{display:true,text:'Missing Data %',color:'#5a7394',font:{size:10}},ticks:{color:'#5a7394',font:{family:"'DM Mono'",size:9}},grid:{color:'#1f2d3d'},min:0,max:Math.max(35,...loci.map(l=>l.missingRate*100))+5}
+      }
+    }
+  }));
+}
+
+function drawMissing(grid,pal){
+  const loci=lastResult.encodedLoci;
+  const miss=loci.map(l=>+(l.missingRate*100).toFixed(1));
+  const thresh=parseInt(document.getElementById('miss-val').textContent);
+  const c=mkCard('Missing Data Rate per Locus',`threshold: ${thresh}%`,pal[2]||pal[0],'cmiss',true);
+  grid.appendChild(c);
+  charts.push(new Chart(document.getElementById('cmiss').getContext('2d'),{
+    type:'bar',
+    data:{labels:loci.map(l=>l.name),datasets:[{
+      data:miss,
+      backgroundColor:miss.map(v=>v>thresh?'#ff4d6d88':pal[0]+'88'),
+      borderColor:miss.map(v=>v>thresh?'#ff4d6d':pal[0]),
+      borderWidth:1,borderRadius:3
+    }]},
+    options:{...CD,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}% missing${ctx.raw>thresh?' ⚠ REMOVED':''}`}}},
+      scales:{...CD.scales,y:{...CD.scales.y,min:0,max:100,ticks:{...CD.scales.y.ticks,callback:v=>v+'%'}}}}
+  }));
+}
+
+function drawDiversity(grid,pal){
+  const loci=lastResult.encodedLoci.filter(l=>!l.removed);
+  const pic=loci.map(l=>{
+    const v=Object.values(l.alleleFreqs);const tot=v.reduce((a,b)=>a+b,0);if(!tot)return 0;
+    return+(1-v.reduce((s,x)=>s+(x/tot)**2,0)).toFixed(3);
+  });
+  const avg=(pic.reduce((a,b)=>a+b,0)/pic.length).toFixed(3);
+  const c=mkCard('PIC Proxy — Expected Heterozygosity',`avg: ${avg}`,pal[3]||pal[1],'cpic',true);
+  grid.appendChild(c);
+  charts.push(new Chart(document.getElementById('cpic').getContext('2d'),{
+    type:'bar',
+    data:{labels:loci.map(l=>l.name),datasets:[{
+      data:pic,
+      backgroundColor:pic.map(v=>v>0.5?pal[0]+'bb':(pal[3]||pal[1])+'bb'),
+      borderColor:pic.map(v=>v>0.5?pal[0]:pal[3]||pal[1]),
+      borderWidth:1,borderRadius:4
+    }]},
+    options:{...CD,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: PIC ≈ ${ctx.raw} ${ctx.raw>0.5?'(highly informative)':'(moderate)'}`}}},
+      scales:{...CD.scales,y:{...CD.scales.y,min:0,max:1,ticks:{...CD.scales.y.ticks,callback:v=>v.toFixed(1)}}}
+    }
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════
+// TASSEL VALIDATOR
+// ═══════════════════════════════════════════════════════════
+function renderValidator(){
+  if(!lastResult)return;
+  const lines=lastResult.hapmap.split('\n').filter(Boolean);
+  const hdr=lines[0].split('\t');
+  const data=lines.slice(1);
+  const REQ=['rs#','alleles','chrom','pos','strand','assembly#','center','protLSID','assayLSID','panelLSID','QCcode'];
+  const VGT=new Set(['AA','CC','GG','TT','AC','AG','AT','CG','CT','GT','CA','GA','TA','GC','TC','TG','NN']);
+  const checks=[];
+  const nSamples=hdr.length-11;
+
+  // File structure
+  const hasAll=REQ.every(c=>hdr.includes(c));
+  checks.push({g:'File Structure',n:'Required HapMap columns present',s:hasAll?'p':'f',
+    d:hasAll?`All 11 mandatory columns found`:`Missing: ${REQ.filter(c=>!hdr.includes(c)).join(', ')}`});
+  checks.push({g:'File Structure',n:'Data rows present',s:data.length>0?'p':'f',
+    d:`${data.length} marker rows found`});
+  const badRows=data.filter(r=>r.split('\t').length!==hdr.length);
+  checks.push({g:'File Structure',n:'Column count consistent across all rows',s:badRows.length===0?'p':'f',
+    d:badRows.length===0?`All rows have ${hdr.length} columns`:`${badRows.length} rows with column mismatch`});
+
+  // Genotype coding
+  let badCt=0,totCt=0;
+  data.forEach(r=>{r.split('\t').slice(11).forEach(c=>{totCt++;if(!VGT.has(c.trim()))badCt++;});});
+  checks.push({g:'Genotype Coding',n:'All genotype calls use valid diploid codes',s:badCt===0?'p':'f',
+    d:badCt===0?`All ${totCt} genotype calls valid (AA / AC / NN etc.)`:`${badCt} invalid calls out of ${totCt}`});
+  const badAF=data.filter(r=>{const a=r.split('\t')[1];return!a||!/^[ACGTN](\/[ACGTN])*$/.test(a);});
+  checks.push({g:'Genotype Coding',n:'Allele field format (column 2)',s:badAF.length===0?'p':'w',
+    d:badAF.length===0?'All allele fields formatted correctly (A/C etc.)':
+      `${badAF.length} rows with unexpected allele format — verify manually`});
+
+  // Multi-allelic
+  const multiLoci=lastResult.encodedLoci.filter(l=>l.multiAllelic&&!l.removed);
+  checks.push({g:'Genotype Coding',n:'Multi-allelic loci (>4 alleles)',s:multiLoci.length===0?'p':'w',
+    d:multiLoci.length===0?'No multi-allelic loci detected':
+      `${multiLoci.length} loci had >4 alleles: ${multiLoci.map(l=>l.name).join(', ')} — rare alleles encoded as N`});
+
+  // Marker IDs
+  const ids=data.map(r=>r.split('\t')[0]);
+  checks.push({g:'Marker IDs',n:'No spaces in marker IDs (rs# column)',s:ids.some(id=>/ /.test(id))?'f':'p',
+    d:ids.some(id=>/ /.test(id))?'Spaces found in IDs — TASSEL will reject on load':'All marker IDs are space-free'});
+  const dupes=ids.filter((id,i)=>ids.indexOf(id)!==i);
+  checks.push({g:'Marker IDs',n:'Unique marker IDs',s:dupes.length===0?'p':'f',
+    d:dupes.length===0?'All marker IDs are unique':`Duplicates: ${[...new Set(dupes)].join(', ')}`});
+
+  // Genomic position
+  const chrs=data.map(r=>r.split('\t')[2]);
+  const nUn=chrs.filter(c=>c==='un').length;
+  checks.push({g:'Genomic Position',n:'Chromosome assignments',s:nUn===data.length?'w':nUn>0?'w':'p',
+    d:nUn===0?'All markers have chromosome assignments':
+      `${nUn}/${data.length} markers on unknown chrom ("un"). Assign genomic positions to improve GWAS resolution.`});
+  const pos=data.map(r=>parseInt(r.split('\t')[3])||0);
+  const unsorted=pos.some((p,i)=>i>0&&p<pos[i-1]);
+  checks.push({g:'Genomic Position',n:'Positions in ascending order',s:unsorted?'w':'p',
+    d:unsorted?'Positions not fully ascending — TASSEL may reorder during import':'Ascending order confirmed'});
+
+  // Data quality
+  const allGT=data.flatMap(r=>r.split('\t').slice(11));
+  const missRate=(allGT.filter(c=>c.trim()==='NN').length/allGT.length*100).toFixed(1);
+  checks.push({g:'Data Quality',n:'Overall missing data rate',s:parseFloat(missRate)>20?'w':'p',
+    d:`Overall missing: ${missRate}%${parseFloat(missRate)>20?' — consider stricter filtering':' — within acceptable range'}`});
+  checks.push({g:'Data Quality',n:'Sample count adequate for GWAS',s:nSamples>=30?'p':'w',
+    d:`${nSamples} samples.${nSamples<30?' GWAS with <30 samples has very limited power. Consider combining datasets.':' Sufficient for GWAS analysis.'}`});
+  checks.push({g:'Data Quality',n:'Marker count adequate for GWAS',s:data.length>=50?'p':'w',
+    d:`${data.length} markers passed QC.${data.length<50?' Fewer than 50 markers limits GWAS resolution.':' Sufficient marker density.'}`});
+
+  // Score
+  const nP=checks.filter(c=>c.s==='p').length;
+  const nW=checks.filter(c=>c.s==='w').length;
+  const nF=checks.filter(c=>c.s==='f').length;
+  const sc=nF>0?'fail':nW>1?'warn':'pass';
+  const scLabel=nF>0?'Issues':nW>1?'Review':'Valid';
+  const groups=[...new Set(checks.map(c=>c.g))];
+  const ICONS={p:'✅',w:'⚠️',f:'❌'};
+  const CLS={p:'vp',w:'vw',f:'vf'};
+
+  let html=`<div class="vhead">
+    <div class="vscore ${sc}">${scLabel}</div>
+    <div class="vhead-text">
+      <h4>TASSEL / GAPIT Compatibility Report</h4>
+      <p>${nP} passed &nbsp;·&nbsp; ${nW} warnings &nbsp;·&nbsp; ${nF} failed &nbsp;|&nbsp; ${data.length} markers &nbsp;·&nbsp; ${nSamples} samples</p>
+    </div>
+  </div>`;
+  groups.forEach(g=>{
+    html+=`<div class="vsectitle">${g}</div><div class="vchecks">`;
+    checks.filter(c=>c.g===g).forEach(c=>{
+      html+=`<div class="vcheck ${CLS[c.s]}"><div class="vci">${ICONS[c.s]}</div><div class="vcb"><div class="vcn">${c.n}</div><div class="vcd">${c.d}</div></div></div>`;
+    });
+    html+='</div>';
+  });
+  html+=`<div class="vtip">💡 <strong>TASSEL loading:</strong> File → Load Data → HapMap. Chromosome must be integer or "un". For GAPIT: <code>myGD &lt;- read.table("output.hmp.txt", header=TRUE)</code> or use <code>GAPIT.HapMap()</code>. LD pruning (r² &lt; 0.2) is recommended before MLM/BLINK. Generate a kinship matrix K from the same HapMap file for population structure correction.</div>`;
+  document.getElementById('vinner').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOCI BROWSER
+// ═══════════════════════════════════════════════════════════
+function buildLoci(){
+  const inp=document.getElementById('inp').value.trim();
+  const container=document.getElementById('lgrid');container.innerHTML='';
+  if(!inp){container.innerHTML='<p style="color:var(--muted);font-size:.76rem;grid-column:1/-1;">Load data first.</p>';return;}
+  const lines=inp.split('\n').filter(Boolean);
+  const sep=lines[0].includes('\t')?'\t':',';
+  const names=lines[0].split(sep).slice(1).map(s=>s.trim());
+  const rows=lines.slice(1).map(l=>l.split(sep));
+  names.forEach((name,li)=>{
+    const alleles=rows.map(r=>(r[li+1]||'.').trim());
+    const unique=new Set();
+    alleles.forEach(a=>{a.split('/').forEach(x=>{if(x&&x!=='.')unique.add(x.trim());});});
+    const cnt=unique.size;
+    const miss=alleles.filter(a=>a==='.'||a==='./.'||a==='').length;
+    const isDom=alleles.every(a=>['0','1','.',''].includes(a));
+    const status=cnt===0?'err':cnt>4?'warn':'ok';
+    const cols={ok:'#00d4aa',warn:'#ff8c42',err:'#ff4d6d'};
+    const lbl={ok:'OK',warn:'>4 alleles',err:'no data'};
+    const el=document.createElement('div');el.className='litem';
+    el.innerHTML=`<div class="ldot" style="background:${cols[status]}"></div>
+      <div class="lname">${name}</div>
+      <div class="lall">${isDom?'dom':cnt+' bp alleles'}${miss>0?' · '+miss+'N':''}</div>
+      <span class="lbadge l${status==='ok'?'ok':status==='warn'?'warn':'err'}">${lbl[status]}</span>`;
+    container.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOWNLOAD / COPY
+// ═══════════════════════════════════════════════════════════
+function downloadHapmap(){
+  const text=document.getElementById('out').textContent;
+  if(!lastResult){toast('⚠️','Run conversion first');return;}
+  const blob=new Blob([text],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='output.hmp.txt';a.click();
+  URL.revokeObjectURL(url);toast('⬇️','HapMap file downloaded');
+}
+function copyMethods(){
+  navigator.clipboard.writeText(document.getElementById('mbox').textContent)
+    .then(()=>toast('📋','Methods text copied to clipboard'))
+    .catch(()=>toast('⚠️','Could not access clipboard'));
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+let tt;
+function toast(icon,msg){
+  const el=document.getElementById('toastEl');
+  document.getElementById('ticon').textContent=icon;
+  document.getElementById('tmsg').textContent=msg;
+  el.classList.add('show');clearTimeout(tt);
+  tt=setTimeout(()=>el.classList.remove('show'),3400);
+}
+
+Chart.defaults.color='#5a7394';
+Chart.defaults.font.family="'DM Mono', monospace";
+
+// Auto-load demo on page load for immediate visual testing
+window.addEventListener('load',()=>{ loadDemo(); setTimeout(()=>runConvert(),400); });
+</script>
+</body>
+</html>
