@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GenoBLUP — Breeding Value Estimation Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #070b14;
+  --bg2: #0d1424;
+  --bg3: #121a2e;
+  --border: #1e2d4a;
+  --border2: #253860;
+  --accent: #00c8ff;
+  --accent2: #0084aa;
+  --green: #00e59b;
+  --amber: #f5a623;
+  --red: #ff4d6d;
+  --purple: #a78bfa;
+  --text: #e2eaf8;
+  --text2: #8ba0c4;
+  --text3: #4a6080;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Outfit', sans-serif;
+  --radius: 8px;
+  --glow: 0 0 20px rgba(0,200,255,0.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);display:flex;font-size:14px}
+
+/* SIDEBAR */
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.logo{padding:20px 16px 18px;border-bottom:1px solid var(--border)}
+.logo-title{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:1px;font-family:var(--mono)}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:3px;letter-spacing:.5px}
+.sidebar-section{padding:14px 12px 8px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);font-weight:600}
+.method-btn{width:100%;text-align:left;background:none;border:none;color:var(--text2);cursor:pointer;padding:9px 16px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;transition:.15s;margin-bottom:2px}
+.method-btn:hover{background:var(--bg3);color:var(--text)}
+.method-btn.active{background:rgba(0,200,255,0.08);color:var(--accent);border-left:2px solid var(--accent)}
+.method-badge{margin-left:auto;font-size:9px;background:var(--bg3);border:1px solid var(--border2);padding:2px 6px;border-radius:4px;font-family:var(--mono)}
+.sidebar-footer{margin-top:auto;padding:14px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.6}
+.sidebar-footer b{color:var(--text2)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;min-height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px}
+.topbar-title{font-size:15px;font-weight:600;color:var(--text)}
+.topbar-method{font-size:11px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.25);color:var(--accent);padding:3px 10px;border-radius:4px;font-family:var(--mono);letter-spacing:.5px}
+.topbar-actions{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn{border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 18px;border-radius:var(--radius);transition:.15s;display:flex;align-items:center;gap:7px}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#33d4ff}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-green{background:var(--green);color:#000}
+.btn-green:hover{background:#33ffb8}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* CONTENT AREA */
+.content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:18px}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.card-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.01)}
+.card-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:.3px}
+.card-subtitle{font-size:11px;color:var(--text3);margin-left:auto}
+.card-body{padding:18px}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 18px;background:rgba(255,255,255,.01)}
+.tab{padding:10px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.5px;text-transform:uppercase}
+.form-input, .form-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;width:100%;outline:none;transition:.15s}
+.form-input:focus, .form-select:focus{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(0,200,255,.1)}
+.form-select option{background:var(--bg3)}
+.form-input::placeholder{color:var(--text3)}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:.15s;background:rgba(255,255,255,.01)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(0,200,255,.03)}
+.upload-icon{font-size:32px;margin-bottom:8px;opacity:.4}
+.upload-text{font-size:13px;color:var(--text2);font-weight:500}
+.upload-sub{font-size:11px;color:var(--text3);margin-top:4px}
+#file-input,#pedigree-file,#geno-file{display:none}
+.file-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,229,155,.08);border:1px solid rgba(0,229,155,.25);color:var(--green);padding:5px 12px;border-radius:4px;font-size:12px;margin-top:8px;font-family:var(--mono)}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{background:var(--bg3);color:var(--text2);padding:8px 12px;text-align:left;font-weight:600;letter-spacing:.5px;font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.data-table td{padding:7px 12px;border-bottom:1px solid rgba(30,45,74,.5);font-family:var(--mono);color:var(--text)}
+.data-table tr:hover td{background:rgba(255,255,255,.015)}
+.data-table tr:last-child td{border-bottom:none}
+.val-pos{color:var(--green)}
+.val-neg{color:var(--red)}
+.val-neutral{color:var(--text2)}
+.rank-badge{display:inline-block;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.2);color:var(--accent);padding:1px 7px;border-radius:3px;font-size:10px}
+
+/* RESULTS */
+.results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.stat-value.accent{color:var(--accent)}
+.stat-value.green{color:var(--green)}
+.stat-value.amber{color:var(--amber)}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* MANUAL ENTRY TABLE */
+.manual-table{width:100%;border-collapse:collapse}
+.manual-table th{background:var(--bg);padding:8px 10px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
+.manual-table td{padding:4px 6px;border-bottom:1px solid rgba(30,45,74,.3)}
+.manual-table input{background:var(--bg3);border:1px solid transparent;color:var(--text);padding:5px 8px;border-radius:4px;font-family:var(--mono);font-size:12px;width:100%;outline:none}
+.manual-table input:focus{border-color:var(--accent2)}
+.add-row-btn{margin-top:8px;font-size:12px;color:var(--accent);background:none;border:1px dashed rgba(0,200,255,.3);border-radius:4px;padding:6px 14px;cursor:pointer;font-family:var(--sans)}
+.add-row-btn:hover{background:rgba(0,200,255,.05)}
+
+/* NOTICE/ALERT */
+.notice{padding:10px 14px;border-radius:var(--radius);font-size:12px;display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.notice-info{background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.15);color:var(--text2)}
+.notice-success{background:rgba(0,229,155,.05);border:1px solid rgba(0,229,155,.15);color:var(--green)}
+.notice-warn{background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.15);color:var(--amber)}
+.notice-icon{flex-shrink:0;font-size:14px}
+
+/* CHART */
+.chart-wrap{position:relative;height:280px}
+canvas{max-height:100%}
+
+/* LOADING */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,200,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PROGRESS */
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:.3s}
+
+/* PARAMS SECTION */
+.params-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.param-group{display:flex;flex-direction:column;gap:5px;min-width:130px}
+.param-hint{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* MATRIX PREVIEW */
+.matrix-preview{font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;overflow:auto;max-height:180px;color:var(--text2);line-height:1.6}
+
+/* HIDDEN */
+.hidden{display:none!important}
+
+/* SECTION DOT */
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-blue{background:var(--accent)}
+.dot-green{background:var(--green)}
+.dot-amber{background:var(--amber)}
+.dot-purple{background:var(--purple)}
+
+/* RESULTS TABS */
+.results-tabs{display:flex;gap:0;background:var(--bg3);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.res-tab{padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text3);border:none;background:none;font-family:var(--sans);transition:.15s}
+.res-tab:hover{color:var(--text)}
+.res-tab.active{background:var(--bg2);color:var(--accent)}
+
+/* TOOLTIP */
+abbr[title]{text-decoration:underline dotted rgba(139,160,196,.4);cursor:help}
+
+/* Scrollable table container */
+.table-scroll{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title">GenoBLUP</div>
+    <div class="logo-sub">Breeding Value Estimation</div>
+  </div>
+  <div class="sidebar-section">Methods</div>
+  <button class="method-btn active" data-method="blup" onclick="switchMethod('blup')">
+    <div class="dot dot-blue"></div> Animal BLUP <span class="method-badge">MME</span>
+  </button>
+  <button class="method-btn" data-method="gblup" onclick="switchMethod('gblup')">
+    <div class="dot dot-green"></div> Genomic BLUP <span class="method-badge">SNP</span>
+  </button>
+  <button class="method-btn" data-method="reml" onclick="switchMethod('reml')">
+    <div class="dot dot-amber"></div> REML <span class="method-badge">VC</span>
+  </button>
+  <button class="method-btn" data-method="index" onclick="switchMethod('index')">
+    <div class="dot dot-purple"></div> Selection Index <span class="method-badge">SI</span>
+  </button>
+  <div class="sidebar-section">Quick Load</div>
+  <button class="method-btn" onclick="loadExample()">
+    📂 Load Example Data
+  </button>
+  <button class="method-btn" onclick="clearAll()">
+    🗑 Clear All
+  </button>
+  <div class="sidebar-footer">
+    <b>Henderson (1984)</b> Mixed Model<br>
+    <b>VanRaden (2008)</b> G-Matrix<br>
+    <b>Hazel (1943)</b> Selection Index
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Animal BLUP — Pedigree-Based Breeding Values</div>
+    <span class="topbar-method" id="topbar-method">BLUP</span>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="showHelp()">? Help</button>
+      <button class="btn btn-primary" id="run-btn" onclick="runAnalysis()">
+        ▶ Run Analysis
+      </button>
+    </div>
+  </div>
+
+  <div class="content" id="main-content">
+
+    <!-- ═══════════════ BLUP SECTION ═══════════════ -->
+    <div id="section-blup">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-blue"></div>
+          <span class="card-title">Input Data</span>
+          <span class="card-subtitle">Phenotype + Pedigree</span>
+        </div>
+        <div class="tabs" id="blup-tabs">
+          <div class="tab active" onclick="switchTab('blup','manual')">Manual Entry</div>
+          <div class="tab" onclick="switchTab('blup','csv')">CSV / Excel</div>
+          <div class="tab" onclick="switchTab('blup','pedigree')">Pedigree File</div>
+        </div>
+        <!-- Manual Entry -->
+        <div class="tab-content active" id="blup-tab-manual">
+          <div style="padding:16px">
+            <div class="notice notice-info" style="margin-bottom:14px">
+              <span class="notice-icon">ℹ</span>
+              Enter Animal ID, Sire ID, Dam ID, and phenotype value. Leave Sire/Dam blank for unknown parents (use 0).
+            </div>
+            <div style="overflow-x:auto">
+              <table class="manual-table" id="blup-manual-table">
+                <thead><tr>
+                  <th>#</th><th>Animal ID</th><th>Sire ID</th><th>Dam ID</th><th>Phenotype</th><th>Fixed Group</th><th></th>
+                </tr></thead>
+                <tbody id="blup-manual-body"></tbody>
+              </table>
+            </div>
+            <button class="add-row-btn" onclick="addManualRow('blup')">+ Add Row</button>
+          </div>
+        </div>
+        <!-- CSV -->
+        <div class="tab-content" id="blup-tab-csv">
+          <div style="padding:16px">
+            <div class="upload-zone" id="blup-csv-zone" onclick="document.getElementById('blup-csv-file').click()" ondrop="handleDrop(event,'blup-csv')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+              <div class="upload-icon">📊</div>
+              <div class="upload-text">Drop CSV/Excel file here or click to browse</div>
+              <div class="upload-sub">Expected columns: animal_id, sire_id, dam_id, phenotype, [group]</div>
+              <div id="blup-csv-badge"></div>
+            </div>
+            <input type="file" id="blup-csv-file" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(event,'blup-csv')">
+          </div>
+        </div>
+        <!-- Pedigree -->
+        <div class="tab-content" id="blup-tab-pedigree">
+          <div style="padding:16px">
+            <div class="notice notice-info" style="margin-bottom:14px">
+              <span class="notice-icon">ℹ</span>
+              Upload a pedigree file (.csv) with columns: <code style="color:var(--accent)">id, sire, dam</code>. Then upload phenotype data separately.
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <div class="form-label" style="margin-bottom:8px">Pedigree File</div>
+                <div class="upload-zone" style="padding:16px" onclick="document.getElementById('ped-file').click()">
+                  <div class="upload-icon" style="font-size:22px">🧬</div>
+                  <div class="upload-text" style="font-size:12px">id, sire, dam</div>
+                  <div id="ped-badge"></div>
+                </div>
+                <input type="file" id="ped-file" accept=".csv" onchange="handlePedigreeFile(event)">
+              </div>
+              <div>
+                <div class="form-label" style="margin-bottom:8px">Phenotype File</div>
+                <div class="upload-zone" style="padding:16px" onclick="document.getElementById('pheno-file').click()">
+                  <div class="upload-icon" style="font-size:22px">📈</div>
+                  <div class="upload-text" style="font-size:12px">id, phenotype, [group]</div>
+                  <div id="pheno-badge"></div>
+                </div>
+                <input type="file" id="pheno-file" accept=".csv" onchange="handlePhenoFile(event)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="dot dot-blue"></div><span class="card-title">Model Parameters</span></div>
+        <div class="card-body">
+          <div class="params-row">
+            <div class="param-group">
+              <label class="form-label">Heritability (h²)</label>
+              <input type="number" class="form-input" id="blup-h2" value="0.35" min="0.01" max="0.99" step="0.01">
+              <div class="param-hint">λ = (1-h²)/h² = σ²e/σ²a</div>
+            </div>
+            <div class="param-group">
+              <label class="form-label">Trait Name</label>
+              <input type="text" class="form-input" id="blup-trait" value="Milk Yield" placeholder="e.g. Body Weight">
+            </div>
+            <div class="param-group">
+              <label class="form-label">Fixed Effects</label>
+              <select class="form-select" id="blup-fixed">
+                <option value="mean">Overall Mean Only</option>
+                <option value="group">Mean + Group</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end section-blup -->
+
+    <!-- ═══════════════ GBLUP SECTION ═══════════════ -->
+    <div id="section-gblup" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-green"></div>
+          <span class="card-title">Input Data</span>
+          <span class="card-subtitle">Phenotype + Genotype (SNP)</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('gblup','manual')">Manual Entry</div>
+          <div class="tab" onclick="switchTab('gblup','csv')">CSV / Excel</div>
+          <div class="tab" onclick="switchTab('gblup','snp')">SNP Marker File</div>
+        </div>
+        <div class="tab-content active" id="gblup-tab-manual">
+          <div style="padding:16px">
+            <div class="notice notice-info" style="margin-bottom:14px">
+              <span class="notice-icon">ℹ</span>
+              Enter phenotypes for each animal. Genotype data (SNP coded 0/1/2 per marker) is entered in the SNP tab.
+            </div>
+            <table class="manual-table" id="gblup-manual-table">
+              <thead><tr><th>#</th><th>Animal ID</th><th>Phenotype</th><th></th></tr></thead>
+              <tbody id="gblup-manual-body"></tbody>
+            </table>
+            <button class="add-row-btn" onclick="addManualRow('gblup')">+ Add Row</button>
+          </div>
+        </div>
+        <div class="tab-content" id="gblup-tab-csv">
+          <div style="padding:16px">
+            <div class="upload-zone" onclick="document.getElementById('gblup-csv-file').click()">
+              <div class="upload-icon">📊</div>
+              <div class="upload-text">Drop phenotype CSV/Excel here</div>
+              <div class="upload-sub">Columns: animal_id, phenotype</div>
+              <div id="gblup-csv-badge"></div>
+            </div>
+            <input type="file" id="gblup-csv-file" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(event,'gblup-csv')">
+          </div>
+        </div>
+        <div class="tab-content" id="gblup-tab-snp">
+          <div style="padding:16px">
+            <!-- Format selector -->
+            <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+              <span class="form-label" style="white-space:nowrap">File format:</span>
+              <div class="results-tabs" style="flex-shrink:0">
+                <button class="res-tab active" id="snp-fmt-vcf"  onclick="switchSNPFormat('vcf')">VCF</button>
+                <button class="res-tab"        id="snp-fmt-ped"  onclick="switchSNPFormat('ped')">PED + MAP</button>
+                <button class="res-tab"        id="snp-fmt-csv"  onclick="switchSNPFormat('csv')">CSV (0/1/2)</button>
+              </div>
+            </div>
+
+            <!-- VCF panel -->
+            <div id="snp-panel-vcf">
+              <div class="notice notice-info" style="margin-bottom:12px">
+                <span class="notice-icon">ℹ</span>
+                <div>Standard <b>VCF v4.x</b> file. Samples become animals; GT field is decoded as dosage (0/0→0, 0/1→1, 1/1→2). Multi-allelic sites are collapsed to bi-allelic dosage. Missing genotypes (<code>./.</code>) imputed to 0.</div>
+              </div>
+              <div class="upload-zone" id="vcf-zone"
+                   onclick="document.getElementById('vcf-file').click()"
+                   ondrop="handleGenoDrop(event,'vcf')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+                <div class="upload-icon">🧬</div>
+                <div class="upload-text">Drop <b>.vcf</b> file here or click to browse</div>
+                <div class="upload-sub">##META lines → #CHROM header → genotype rows</div>
+                <div id="vcf-badge"></div>
+              </div>
+              <input type="file" id="vcf-file" accept=".vcf,.vcf.gz,.txt" onchange="handleVCF(event)">
+            </div>
+
+            <!-- PED + MAP panel -->
+            <div id="snp-panel-ped" class="hidden">
+              <div class="notice notice-info" style="margin-bottom:12px">
+                <span class="notice-icon">ℹ</span>
+                <div>PLINK <b>.ped</b> + <b>.map</b>. Upload <b>MAP first</b>, then PED. Alleles auto-recoded to 0/1/2.
+                For large files (&gt;50K markers) a random subsample is used — adjust below.</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px">
+                <span class="form-label" style="white-space:nowrap">Max markers to use:</span>
+                <input type="number" class="form-input" id="ped-max-markers" value="10000" min="500" max="100000" step="500" style="width:110px">
+                <span style="font-size:11px;color:var(--text3)">Randomly subsampled if file has more. Recommended: 5 000–20 000.</span>
+                <div id="ped-progress" style="margin-left:auto;font-size:11px;color:var(--accent);display:none"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <div class="form-label" style="margin-bottom:8px">① MAP file <span style="color:var(--text3);font-weight:400">(marker info)</span></div>
+                  <div class="upload-zone" style="padding:18px"
+                       onclick="document.getElementById('map-file').click()"
+                       ondrop="handleGenoDrop(event,'map')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+                    <div class="upload-icon" style="font-size:24px">🗺</div>
+                    <div class="upload-text" style="font-size:12px">.map — CHR SNP CM BP</div>
+                    <div id="map-badge"></div>
+                  </div>
+                  <input type="file" id="map-file" accept=".map,.txt" onchange="handleMAP(event)">
+                </div>
+                <div>
+                  <div class="form-label" style="margin-bottom:8px">② PED file <span style="color:var(--text3);font-weight:400">(genotypes)</span></div>
+                  <div class="upload-zone" style="padding:18px"
+                       onclick="document.getElementById('ped-geno-file').click()"
+                       ondrop="handleGenoDrop(event,'ped')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+                    <div class="upload-icon" style="font-size:24px">📄</div>
+                    <div class="upload-text" style="font-size:12px">.ped — FID IID PID MID SEX PHE alleles…</div>
+                    <div id="ped-geno-badge"></div>
+                  </div>
+                  <input type="file" id="ped-geno-file" accept=".ped,.txt" onchange="handlePED(event)">
+                </div>
+              </div>
+            </div>
+
+            <!-- CSV (legacy 0/1/2) panel -->
+            <div id="snp-panel-csv" class="hidden">
+              <div class="notice notice-info" style="margin-bottom:12px">
+                <span class="notice-icon">ℹ</span>
+                CSV with <b>animal_id</b> as first column, then one column per marker coded as 0 (AA), 1 (AB), 2 (BB).
+              </div>
+              <div class="upload-zone"
+                   onclick="document.getElementById('snp-csv-file').click()"
+                   ondrop="handleGenoDrop(event,'csv012')" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+                <div class="upload-icon">📊</div>
+                <div class="upload-text">Drop CSV (0/1/2) file here</div>
+                <div class="upload-sub">animal_id, SNP1, SNP2, …, SNPn</div>
+                <div id="snp-csv-badge"></div>
+              </div>
+              <input type="file" id="snp-csv-file" accept=".csv,.txt" onchange="handleSNPCSV(event)">
+            </div>
+
+            <!-- shared preview -->
+            <div id="snp-preview" style="margin-top:12px"></div>
+            <div id="snp-badge" style="display:none"></div><!-- kept for legacy badge calls -->
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="dot dot-green"></div><span class="card-title">Model Parameters</span></div>
+        <div class="card-body">
+          <div class="params-row">
+            <div class="param-group">
+              <label class="form-label">Heritability (h²)</label>
+              <input type="number" class="form-input" id="gblup-h2" value="0.35" min="0.01" max="0.99" step="0.01">
+            </div>
+            <div class="param-group">
+              <label class="form-label">G-matrix Method</label>
+              <select class="form-select" id="gblup-method">
+                <option value="vanraden1">VanRaden Method 1</option>
+                <option value="simple">Simple (ZZ'/n_markers)</option>
+              </select>
+            </div>
+            <div class="param-group">
+              <label class="form-label">Trait Name</label>
+              <input type="text" class="form-input" id="gblup-trait" value="Genomic EBV" placeholder="Trait">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end section-gblup -->
+
+    <!-- ═══════════════ REML SECTION ═══════════════ -->
+    <div id="section-reml" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-amber"></div>
+          <span class="card-title">Input Data</span>
+          <span class="card-subtitle">REML Variance Component Estimation</span>
+        </div>
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('reml','manual')">Manual Entry</div>
+          <div class="tab" onclick="switchTab('reml','csv')">CSV / Excel</div>
+        </div>
+        <div class="tab-content active" id="reml-tab-manual">
+          <div style="padding:16px">
+            <div class="notice notice-info" style="margin-bottom:14px">
+              <span class="notice-icon">ℹ</span>
+              EM-REML iteratively estimates σ²a (additive genetic variance) and σ²e (residual variance) from pedigree and phenotypic data.
+            </div>
+            <table class="manual-table">
+              <thead><tr><th>#</th><th>Animal ID</th><th>Sire ID</th><th>Dam ID</th><th>Phenotype</th><th></th></tr></thead>
+              <tbody id="reml-manual-body"></tbody>
+            </table>
+            <button class="add-row-btn" onclick="addManualRow('reml')">+ Add Row</button>
+          </div>
+        </div>
+        <div class="tab-content" id="reml-tab-csv">
+          <div style="padding:16px">
+            <div class="upload-zone" onclick="document.getElementById('reml-csv-file').click()">
+              <div class="upload-icon">📊</div><div class="upload-text">Drop CSV/Excel file here</div>
+              <div class="upload-sub">Columns: animal_id, sire_id, dam_id, phenotype</div>
+              <div id="reml-csv-badge"></div>
+            </div>
+            <input type="file" id="reml-csv-file" accept=".csv,.xlsx,.xls" onchange="handleFileUpload(event,'reml-csv')">
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="dot dot-amber"></div><span class="card-title">Algorithm Settings (EM-REML)</span></div>
+        <div class="card-body">
+          <div class="notice notice-info" style="margin-bottom:14px">
+            <span class="notice-icon">ℹ</span>
+            <div>Starting values are <b>auto-initialised</b> from phenotypic variance if left at 0. Convergence criterion is <b>relative</b>: |Δσ²a/σ²a| + |Δσ²e/σ²e| &lt; ε — so 1e-4 works for any trait scale.</div>
+          </div>
+          <div class="params-row">
+            <div class="param-group">
+              <label class="form-label">Initial σ²a <span style="color:var(--text3);font-weight:400">(0 = auto)</span></label>
+              <input type="number" class="form-input" id="reml-va0" value="0" min="0" step="1">
+              <div class="param-hint">0 → auto: 0.30 × V<sub>p</sub></div>
+            </div>
+            <div class="param-group">
+              <label class="form-label">Initial σ²e <span style="color:var(--text3);font-weight:400">(0 = auto)</span></label>
+              <input type="number" class="form-input" id="reml-ve0" value="0" min="0" step="1">
+              <div class="param-hint">0 → auto: 0.70 × V<sub>p</sub></div>
+            </div>
+            <div class="param-group">
+              <label class="form-label">Max Iterations</label>
+              <input type="number" class="form-input" id="reml-iter" value="100" min="10" max="1000">
+            </div>
+            <div class="param-group">
+              <label class="form-label">Convergence ε (relative)</label>
+              <input type="number" class="form-input" id="reml-conv" value="0.0001" step="0.00001">
+              <div class="param-hint">Recommended: 1e-4 to 1e-6</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end section-reml -->
+
+    <!-- ═══════════════ SELECTION INDEX ═══════════════ -->
+    <div id="section-index" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-purple"></div>
+          <span class="card-title">Selection Index Setup</span>
+          <span class="card-subtitle">Hazel (1943) / Smith (1936)</span>
+        </div>
+        <div class="card-body">
+          <div class="notice notice-info" style="margin-bottom:14px">
+            <span class="notice-icon">ℹ</span>
+            <div>The selection index <b>I = b'x</b> maximises correlation with the breeding goal <b>H = v'a</b>. Index weights: <b>b = P⁻¹Gv</b> where P = phenotypic var-cov, G = genetic cov between index traits and goal traits, v = economic weights.</div>
+          </div>
+          <div class="form-grid" style="margin-bottom:18px">
+            <div class="form-group">
+              <label class="form-label">Number of Index Traits</label>
+              <input type="number" class="form-input" id="idx-n-traits" value="3" min="1" max="8" onchange="buildIndexTables()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Number of Goal Traits</label>
+              <input type="number" class="form-input" id="idx-n-goal" value="3" min="1" max="8" onchange="buildIndexTables()">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+            <div>
+              <div class="form-label" style="margin-bottom:8px">Trait Names + Economic Weights</div>
+              <table class="manual-table" id="idx-traits-table">
+                <thead><tr><th>Index Trait</th><th>Econ. Weight (v)</th></tr></thead>
+                <tbody id="idx-traits-body"></tbody>
+              </table>
+            </div>
+            <div>
+              <div class="form-label" style="margin-bottom:8px">Animal Observations</div>
+              <table class="manual-table" id="idx-obs-table">
+                <thead><tr><th>Animal</th><th id="idx-obs-header"></th></tr></thead>
+                <tbody id="idx-obs-body"></tbody>
+              </table>
+              <button class="add-row-btn" onclick="addIndexAnimal()">+ Add Animal</button>
+            </div>
+          </div>
+          <div style="margin-top:18px">
+            <div class="form-label" style="margin-bottom:8px">Phenotypic Variance-Covariance Matrix (P)</div>
+            <table class="manual-table" id="idx-P-table"><tbody id="idx-P-body"></tbody></table>
+          </div>
+          <div style="margin-top:14px">
+            <div class="form-label" style="margin-bottom:8px">Genetic Covariance Matrix (G) — between index traits (rows) and goal traits (cols)</div>
+            <table class="manual-table" id="idx-G-table"><tbody id="idx-G-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div><!-- end section-index -->
+
+    <!-- ═══════════════ RESULTS SECTION ═══════════════ -->
+    <div id="results-section" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <div class="dot dot-green"></div>
+          <span class="card-title">Results</span>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <div class="results-tabs">
+              <button class="res-tab active" onclick="switchResTab('summary')">Summary</button>
+              <button class="res-tab" onclick="switchResTab('ebv')">Breeding Values</button>
+              <button class="res-tab" onclick="switchResTab('chart')">Visualization</button>
+              <button class="res-tab" onclick="switchResTab('matrix')">Matrices</button>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="exportResults()">⬇ Export</button>
+          </div>
+        </div>
+        <!-- Summary Tab -->
+        <div id="res-tab-summary" style="padding:18px">
+          <div class="results-grid" id="res-stats"></div>
+          <div id="res-notice" style="margin-top:14px"></div>
+        </div>
+        <!-- EBV Table Tab -->
+        <div id="res-tab-ebv" class="hidden" style="padding:18px">
+          <div class="table-scroll">
+            <table class="data-table" id="res-ebv-table">
+              <thead id="res-ebv-head"></thead>
+              <tbody id="res-ebv-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Chart Tab -->
+        <div id="res-tab-chart" class="hidden" style="padding:18px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+            <div class="chart-wrap"><canvas id="ebv-chart"></canvas></div>
+            <div class="chart-wrap"><canvas id="acc-chart"></canvas></div>
+          </div>
+        </div>
+        <!-- Matrices Tab -->
+        <div id="res-tab-matrix" class="hidden" style="padding:18px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div>
+              <div class="form-label" style="margin-bottom:6px" id="mat-label-a">A / G Matrix (first 6×6)</div>
+              <div class="matrix-preview" id="mat-A"></div>
+            </div>
+            <div>
+              <div class="form-label" style="margin-bottom:6px">Coefficient Matrix Diagonal</div>
+              <div class="matrix-preview" id="mat-C"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- end results -->
+
+  </div><!-- end content -->
+</div><!-- end main -->
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const state = {
+  method: 'blup',
+  blup: { animals: [] },
+  gblup: { animals: [], snpMatrix: null, markerNames: [] },
+  reml: { animals: [] },
+  index: { nTraits: 3, nGoal: 3 },
+  results: null,
+  charts: {}
+};
+
+// ─── MATRIX LIBRARY ──────────────────────────────────────────────────────────
+function mat(data) { return { data, r: data.length, c: data[0].length }; }
+function zeros(r,c) { return mat(Array.from({length:r},()=>Array(c).fill(0))); }
+function identity(n) { const m=zeros(n,n); for(let i=0;i<n;i++) m.data[i][i]=1; return m; }
+function matGet(m,i,j) { return m.data[i][j]; }
+function matSet(m,i,j,v) { m.data[i][j]=v; }
+function matMul(A,B) {
+  if(A.c!==B.r) throw new Error(`Dimension mismatch: ${A.r}×${A.c} * ${B.r}×${B.c}`);
+  const R=zeros(A.r,B.c);
+  for(let i=0;i<A.r;i++) for(let j=0;j<B.c;j++) {
+    let s=0; for(let k=0;k<A.c;k++) s+=A.data[i][k]*B.data[k][j]; R.data[i][j]=s;
+  }
+  return R;
+}
+function matTrans(A) {
+  const R=zeros(A.c,A.r);
+  for(let i=0;i<A.r;i++) for(let j=0;j<A.c;j++) R.data[j][i]=A.data[i][j];
+  return R;
+}
+function matAdd(A,B) {
+  const R=zeros(A.r,A.c);
+  for(let i=0;i<A.r;i++) for(let j=0;j<A.c;j++) R.data[i][j]=A.data[i][j]+B.data[i][j];
+  return R;
+}
+function matSub(A,B) {
+  const R=zeros(A.r,A.c);
+  for(let i=0;i<A.r;i++) for(let j=0;j<A.c;j++) R.data[i][j]=A.data[i][j]-B.data[i][j];
+  return R;
+}
+function matScale(A,s) {
+  const R=zeros(A.r,A.c);
+  for(let i=0;i<A.r;i++) for(let j=0;j<A.c;j++) R.data[i][j]=A.data[i][j]*s;
+  return R;
+}
+function matTrace(A) { let s=0; for(let i=0;i<Math.min(A.r,A.c);i++) s+=A.data[i][i]; return s; }
+function matInverse(M) {
+  const n=M.r; if(n!==M.c) throw new Error('Not square');
+  const A=M.data.map(r=>[...r]);
+  const I=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0));
+  for(let col=0;col<n;col++) {
+    let maxRow=col; let maxVal=Math.abs(A[col][col]);
+    for(let row=col+1;row<n;row++) if(Math.abs(A[row][col])>maxVal){maxVal=Math.abs(A[row][col]);maxRow=row;}
+    [A[col],A[maxRow]]=[A[maxRow],A[col]];
+    [I[col],I[maxRow]]=[I[maxRow],I[col]];
+    const pivot=A[col][col];
+    if(Math.abs(pivot)<1e-12) throw new Error('Matrix is singular or near-singular');
+    for(let j=0;j<n;j++){A[col][j]/=pivot;I[col][j]/=pivot;}
+    for(let row=0;row<n;row++) if(row!==col) {
+      const f=A[row][col];
+      for(let j=0;j<n;j++){A[row][j]-=f*A[col][j];I[row][j]-=f*I[col][j];}
+    }
+  }
+  return mat(I);
+}
+function solveLinear(A,b) {
+  // Solve Ax=b via Gauss-Jordan
+  const n=A.r; const m=A.data.map(r=>[...r]); const y=b.data.map(r=>[...r]);
+  for(let col=0;col<n;col++) {
+    let maxRow=col,maxVal=Math.abs(m[col][col]);
+    for(let row=col+1;row<n;row++) if(Math.abs(m[row][col])>maxVal){maxVal=Math.abs(m[row][col]);maxRow=row;}
+    [m[col],m[maxRow]]=[m[maxRow],m[col]]; [y[col],y[maxRow]]=[y[maxRow],y[col]];
+    const piv=m[col][col]; if(Math.abs(piv)<1e-12) throw new Error('Singular system');
+    for(let j=0;j<n;j++) m[col][j]/=piv; y[col][0]/=piv;
+    for(let row=0;row<n;row++) if(row!==col){const f=m[row][col];for(let j=0;j<n;j++)m[row][j]-=f*m[col][j];y[row][0]-=f*y[col][0];}
+  }
+  return mat(y);
+}
+function vecFromArr(arr) { return mat(arr.map(v=>[v])); }
+function flatten(m) { return m.data.map(r=>r[0]); }
+
+// ─── PEDIGREE — Numerator Relationship Matrix ─────────────────────────────
+function buildAMatrix(animals) {
+  // animals: [{id, sire, dam}] sorted parents before offspring
+  const ids=animals.map(a=>a.id); const n=ids.length;
+  const idx={}; ids.forEach((id,i)=>idx[id]=i);
+  const A=zeros(n,n);
+  for(let i=0;i<n;i++) {
+    const s=animals[i].sire, d=animals[i].dam;
+    const si=s&&idx[s]!==undefined?idx[s]:-1;
+    const di=d&&idx[d]!==undefined?idx[d]:-1;
+    if(si>=0&&di>=0) A.data[i][i]=1+0.5*A.data[si][di];
+    else A.data[i][i]=1;
+    for(let j=i+1;j<n;j++) {
+      let aij=0;
+      if(si>=0) aij+=0.5*A.data[si][j];
+      if(di>=0) aij+=0.5*A.data[di][j];
+      A.data[i][j]=aij; A.data[j][i]=aij;
+    }
+  }
+  return A;
+}
+
+// ─── GENOMIC RELATIONSHIP MATRIX (VanRaden 2008) ─────────────────────────
+function buildGMatrix(markerMatrix, method='vanraden1') {
+  const n=markerMatrix.length, m=markerMatrix[0].length;
+  const p=Array(m).fill(0);
+  for(let j=0;j<m;j++){let s=0;for(let i=0;i<n;i++)s+=markerMatrix[i][j];p[j]=s/(2*n);}
+  const Z=zeros(n,m);
+  let denom=0;
+  for(let j=0;j<m;j++) denom+=2*p[j]*(1-p[j]);
+  for(let i=0;i<n;i++) for(let j=0;j<m;j++) Z.data[i][j]=markerMatrix[i][j]-2*p[j];
+  const Zt=matTrans(Z);
+  const G=matMul(Z,Zt);
+  if(denom<1e-12) denom=m;
+  return matScale(G,1/denom);
+}
+
+// ─── BLUP SOLVER ─────────────────────────────────────────────────────────────
+function solveBLUP(animals, h2, useGroups=false) {
+  if(animals.length<2) throw new Error('Need at least 2 animals');
+  const lambda=(1-h2)/h2;
+  // Sort topologically (parents before offspring)
+  const sorted=topoSort(animals);
+  const n=sorted.length;
+  const withRecords=sorted.filter(a=>a.phenotype!==null&&a.phenotype!==undefined&&!isNaN(a.phenotype));
+  if(withRecords.length<2) throw new Error('Need at least 2 animals with phenotype records');
+  const A=buildAMatrix(sorted);
+  const Ainv=matInverse(A);
+  // Setup MME: [X'X X'Z; Z'X Z'Z+λA⁻¹][b;u]=[X'y;Z'y]
+  // Fixed: overall mean (+ group effect if enabled)
+  const groups=useGroups?[...new Set(sorted.map(a=>a.group||'1'))].sort():['1'];
+  const ng=groups.length;
+  const gidx={};groups.forEach((g,i)=>gidx[g]=i);
+  // Build X (nObs × ng) and Z (nObs × n)
+  const nObs=withRecords.length;
+  const X=zeros(nObs,ng), Zmat=zeros(nObs,n);
+  const y=zeros(nObs,1);
+  withRecords.forEach((a,i)=>{
+    const gi=gidx[a.group||'1']||0;
+    X.data[i][gi]=1;
+    const ai=sorted.findIndex(s=>s.id===a.id);
+    if(ai>=0) Zmat.data[i][ai]=1;
+    y.data[i][0]=parseFloat(a.phenotype);
+  });
+  const Xt=matTrans(X), Zt=matTrans(Zmat);
+  const XtX=matMul(Xt,X), XtZ=matMul(Xt,Zmat), ZtX=matMul(Zt,X), ZtZ=matMul(Zt,Zmat);
+  const XtY=matMul(Xt,y), ZtY=matMul(Zt,y);
+  const ZtZlA=matAdd(ZtZ,matScale(Ainv,lambda));
+  // Build full coeff matrix [ng+n × ng+n]
+  const dim=ng+n; const C=zeros(dim,dim), rhs=zeros(dim,1);
+  for(let i=0;i<ng;i++){for(let j=0;j<ng;j++) C.data[i][j]=XtX.data[i][j];for(let j=0;j<n;j++) C.data[i][ng+j]=XtZ.data[i][j];}
+  for(let i=0;i<n;i++){for(let j=0;j<ng;j++) C.data[ng+i][j]=ZtX.data[i][j];for(let j=0;j<n;j++) C.data[ng+i][ng+j]=ZtZlA.data[i][j];}
+  for(let i=0;i<ng;i++) rhs.data[i][0]=XtY.data[i][0];
+  for(let i=0;i<n;i++) rhs.data[ng+i][0]=ZtY.data[i][0];
+  const sol=solveLinear(C,rhs);
+  const fixedEff=groups.map((_,i)=>sol.data[i][0]);
+  const ebvArr=sorted.map((_,i)=>sol.data[ng+i][0]);
+  // Accuracy = sqrt(1 - PEV/σ²a) ≈ sqrt(1 - diag(C⁻¹)*λ / 1)
+  // Approximate: use diagonal of Cinv for animal block
+  let PEVs=Array(n).fill(null);
+  try {
+    const Cinv=matInverse(C);
+    const sigmaa2=withRecords.length>0?computeVarP(withRecords.map(a=>a.phenotype))*h2:1;
+    for(let i=0;i<n;i++){
+      const pev=Cinv.data[ng+i][ng+i];
+      PEVs[i]=Math.max(0,pev);
+    }
+  } catch(e){ PEVs=Array(n).fill(null); }
+  const phenoMean=withRecords.reduce((s,a)=>s+parseFloat(a.phenotype),0)/withRecords.length;
+  return { sorted, ebvArr, fixedEff, groups, PEVs, A, Ainv, lambda, phenoMean, withRecords };
+}
+
+// ─── GBLUP SOLVER ────────────────────────────────────────────────────────────
+function solveGBLUP(animals, snpMatrix, h2, gMethod) {
+  if(animals.length<2) throw new Error('Need at least 2 animals with phenotypes and genotypes');
+  const lambda=(1-h2)/h2;
+  const n=animals.length;
+  const G=buildGMatrix(snpMatrix, gMethod);
+  // Add small diagonal for stability
+  for(let i=0;i<n;i++) G.data[i][i]+=0.01;
+  const Ginv=matInverse(G);
+  const X=zeros(n,1); for(let i=0;i<n;i++) X.data[i][0]=1;
+  const Zmat=identity(n);
+  const y=vecFromArr(animals.map(a=>parseFloat(a.phenotype)));
+  const Xt=matTrans(X), Zt=matTrans(Zmat);
+  const XtX=matMul(Xt,X), XtZ=matMul(Xt,Zmat), ZtX=matMul(Zt,X), ZtZ=matMul(Zt,Zmat);
+  const XtY=matMul(Xt,y), ZtY=matMul(Zt,y);
+  const ZtZlG=matAdd(ZtZ,matScale(Ginv,lambda));
+  const dim=1+n; const C=zeros(dim,dim), rhs=zeros(dim,1);
+  C.data[0][0]=XtX.data[0][0];
+  for(let j=0;j<n;j++){C.data[0][1+j]=XtZ.data[0][j]; C.data[1+j][0]=ZtX.data[j][0];}
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) C.data[1+i][1+j]=ZtZlG.data[i][j];
+  rhs.data[0][0]=XtY.data[0][0];
+  for(let i=0;i<n;i++) rhs.data[1+i][0]=ZtY.data[i][0];
+  const sol=solveLinear(C,rhs);
+  const mu=sol.data[0][0];
+  const gebvArr=animals.map((_,i)=>sol.data[1+i][0]);
+  let reliabilities=Array(n).fill(null);
+  try {
+    const Cinv=matInverse(C);
+    const phenoVar=computeVarP(animals.map(a=>parseFloat(a.phenotype)));
+    const sigmaa2=phenoVar*h2;
+    for(let i=0;i<n;i++){
+      const pev=Cinv.data[1+i][1+i];
+      reliabilities[i]=Math.max(0,Math.min(1,1-pev/sigmaa2));
+    }
+  } catch(e){}
+  return { animals, gebvArr, mu, G, Ginv, reliabilities };
+}
+
+// ─── EM-REML ─────────────────────────────────────────────────────────────────
+// Reference: Graser et al. (1987) J.Anim.Sci; Meyer (1989) Livest.Prod.Sci
+// Model: y = Xb + Zu + e,  u ~ N(0, σ²a·A),  e ~ N(0, σ²e·I)
+//
+// Correct EM-REML update equations:
+//   σ²a_new = [û′A⁻¹û  +  σ²e·tr(C_uu·A⁻¹)] / q
+//   σ²e_new = [RSS      +  σ²e·((ng+q) - λ·tr(C_uu·A⁻¹))] / N
+//
+// where RSS = y′y - b̂′X′y - û′Z′y + λ·û′A⁻¹û  (MME shortcut)
+//       λ   = σ²e/σ²a,  q = total random effects,  ng = fixed effects
+//       C_uu = animal block of (MME coeff matrix)⁻¹  (NOT scaled by σ²e)
+//
+// Convergence: relative change in both variance components < convCrit
+function solveREML(animals, va0, ve0, maxIter, convCrit) {
+  const sorted = topoSort(animals);
+  const q      = sorted.length;                                          // total random effects
+  const withRec = sorted.filter(a => a.phenotype !== null && !isNaN(a.phenotype));
+  if(withRec.length < 3) throw new Error('Need at least 3 phenotype records for REML');
+
+  const N  = withRec.length;   // observations
+  const ng = 1;                // fixed effects (overall mean)
+
+  // ── Build A⁻¹ ONCE (A never changes between iterations) ──────────────────
+  const A    = buildAMatrix(sorted);
+  const Ainv = matInverse(A);
+
+  // ── Build X, Z, y ONCE ───────────────────────────────────────────────────
+  const X = zeros(N, 1);    for(let i=0;i<N;i++) X.data[i][0] = 1;
+  const Z = zeros(N, q);
+  const y = zeros(N, 1);
+  withRec.forEach((a, i) => {
+    const ai = sorted.findIndex(s => s.id === a.id);
+    if(ai >= 0) Z.data[i][ai] = 1;
+    y.data[i][0] = parseFloat(a.phenotype);
+  });
+
+  // ── Pre-compute constant matrix products ─────────────────────────────────
+  const Xt  = matTrans(X),  Zt  = matTrans(Z);
+  const XtX = matMul(Xt, X);               // [1×1]
+  const XtZ = matMul(Xt, Z);               // [1×q]
+  const ZtX = matMul(Zt, X);               // [q×1]
+  const ZtZ = matMul(Zt, Z);               // [q×q]
+  const Xty = matMul(Xt, y);               // [1×1]  = sum(y)
+  const Zty = matMul(Zt, y);               // [q×1]
+  const yty = matMul(matTrans(y), y).data[0][0];
+
+  // ── Smart starting values from phenotypic variance ────────────────────────
+  const phenoVals = withRec.map(a => parseFloat(a.phenotype));
+  const phenoMean = phenoVals.reduce((s,v)=>s+v,0) / N;
+  const Vp = phenoVals.reduce((s,v)=>s+(v-phenoMean)**2,0) / (N-1);
+  // Use user values only if they are plausible fractions of Vp; otherwise auto-init
+  let va = (va0 > 0 && va0 < Vp*2) ? va0 : Vp * 0.30;
+  let ve = (ve0 > 0 && ve0 < Vp*2) ? ve0 : Vp * 0.70;
+
+  const history  = [];
+  let converged  = false;
+  const dim      = 1 + q;
+
+  for(let iter = 0; iter < maxIter; iter++) {
+    const lam = ve / va;   // λ = σ²e / σ²a
+
+    // ── Build MME coefficient matrix C ────────────────────────────────────
+    const C = zeros(dim, dim);
+    C.data[0][0] = XtX.data[0][0];
+    for(let j=0;j<q;j++){
+      C.data[0][1+j] = XtZ.data[0][j];
+      C.data[1+j][0] = ZtX.data[j][0];
+    }
+    for(let i=0;i<q;i++) for(let j=0;j<q;j++)
+      C.data[1+i][1+j] = ZtZ.data[i][j] + lam * Ainv.data[i][j];
+
+    const rhs = zeros(dim, 1);
+    rhs.data[0][0] = Xty.data[0][0];
+    for(let i=0;i<q;i++) rhs.data[1+i][0] = Zty.data[i][0];
+
+    // ── Solve MME and invert C ────────────────────────────────────────────
+    let sol, Cinv;
+    try { sol  = solveLinear(C, rhs); } catch(e) { history.push({iter:iter+1,va,ve,h2:va/(va+ve),delta:NaN,note:'MME singular'}); break; }
+    try { Cinv = matInverse(C);        } catch(e) { history.push({iter:iter+1,va,ve,h2:va/(va+ve),delta:NaN,note:'C singular'}); break; }
+
+    // ── Extract solutions ─────────────────────────────────────────────────
+    const mu  = sol.data[0][0];
+    const u   = Array.from({length:q}, (_,i) => sol.data[1+i][0]);
+    const uvec = vecFromArr(u);
+
+    // ── Extract C_uu (q×q animal block of C⁻¹) ───────────────────────────
+    const Cuu = zeros(q, q);
+    for(let i=0;i<q;i++) for(let j=0;j<q;j++) Cuu.data[i][j] = Cinv.data[1+i][1+j];
+
+    // ── Key scalar quantities ──────────────────────────────────────────────
+    // tr(C_uu · A⁻¹)
+    const trCA = matTrace(matMul(Cuu, Ainv));
+
+    // û′A⁻¹û
+    const uAu  = matMul(matMul(matTrans(uvec), Ainv), uvec).data[0][0];
+
+    // RSS = y′y - b̂·(X′y) - û′(Z′y) + λ·û′A⁻¹û   [MME shortcut, no Z-loop needed]
+    const uZty = u.reduce((s, ui, i) => s + ui * Zty.data[i][0], 0);
+    const ete  = yty - mu * Xty.data[0][0] - uZty + lam * uAu;
+
+    // ── EM-REML variance component updates ───────────────────────────────
+    // σ²a: (û′A⁻¹û + σ²e·tr(C_uu·A⁻¹)) / q
+    const va_new = (uAu + ve * trCA) / q;
+
+    // σ²e: (RSS + σ²e·((ng+q) - λ·tr(C_uu·A⁻¹))) / N
+    const ve_new = (ete + ve * ((ng + q) - lam * trCA)) / N;
+
+    // Relative convergence: |Δva/va| + |Δve/ve|
+    const delta_rel = Math.abs(va_new - va) / (Math.abs(va) + 1e-12)
+                    + Math.abs(ve_new - ve) / (Math.abs(ve) + 1e-12);
+
+    // Bound away from zero/negative
+    va = Math.max(1e-8 * Vp, va_new);
+    ve = Math.max(1e-8 * Vp, ve_new);
+
+    const h2cur = va / (va + ve);
+    history.push({iter: iter+1, va, ve, h2: h2cur, delta: delta_rel});
+
+    if(delta_rel < convCrit) { converged = true; break; }
+  }
+
+  const h2 = va / (va + ve);
+  const vp = va + ve;
+
+  // Final BLUP with estimated h²
+  let finalEBV = [];
+  try {
+    const res = solveBLUP(animals, h2, false);
+    finalEBV = res.sorted.map((a, i) => ({id: a.id, ebv: res.ebvArr[i]}));
+  } catch(e) {}
+
+  return {va, ve, h2, vp, converged, history, finalEBV, Vp};
+}
+
+// ─── SELECTION INDEX ─────────────────────────────────────────────────────────
+function solveSelectionIndex(Pdata,Gdata,vWeights,traitNames,animals,obsCols) {
+  const nT=Pdata.length, nG=Gdata[0].length;
+  const P=mat(Pdata.map(r=>[...r]));
+  const Gmat=mat(Gdata.map(r=>[...r]));
+  const v=vecFromArr(vWeights);
+  const Pinv=matInverse(P);
+  const b=matMul(matMul(Pinv,Gmat),v);
+  const bArr=b.data.map(r=>r[0]);
+  // Genetic variance of H
+  const sigH2=matMul(matMul(matTrans(v),matTrans(Gmat)),matMul(Pinv,matMul(Gmat,v))).data[0][0];
+  // Variance of I
+  const sigI2=matMul(matMul(matTrans(b),P),b).data[0][0];
+  const rIH=sigH2>0&&sigI2>0?Math.sqrt(sigH2/sigI2):0;
+  // Compute index values for animals
+  const indexed=animals.map(animal=>{
+    const x=obsCols.map(col=>parseFloat(animal[col])||0);
+    const I=bArr.reduce((s,bi,i)=>s+bi*x[i],0);
+    return {id:animal.id||animal.name||`Animal ${animals.indexOf(animal)+1}`,I,x};
+  });
+  indexed.sort((a,b)=>b.I-a.I);
+  return {b:bArr,rIH,sigH2,sigI2,indexed,traitNames};
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function topoSort(animals) {
+  const ids=new Set(animals.map(a=>a.id));
+  const sorted=[], visited=new Set(), inStack=new Set();
+  const map={};animals.forEach(a=>map[a.id]=a);
+  function visit(a) {
+    if(inStack.has(a.id)) return; // cycle, skip
+    if(visited.has(a.id)) return;
+    inStack.add(a.id);
+    if(a.sire&&map[a.sire]) visit(map[a.sire]);
+    if(a.dam&&map[a.dam]) visit(map[a.dam]);
+    inStack.delete(a.id);
+    visited.add(a.id); sorted.push(a);
+  }
+  animals.forEach(a=>visit(a));
+  return sorted;
+}
+function computeVarP(arr) {
+  const nums=arr.map(v=>parseFloat(v)).filter(v=>!isNaN(v));
+  if(nums.length<2) return 1;
+  const mean=nums.reduce((a,b)=>a+b,0)/nums.length;
+  return nums.reduce((s,v)=>s+(v-mean)**2,0)/(nums.length-1);
+}
+function mean(arr){return arr.reduce((a,b)=>a+b,0)/arr.length;}
+function stdev(arr){const m=mean(arr);return Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/arr.length);}
+function formatNum(v,d=3){if(v===null||isNaN(v)) return '—';return v.toFixed(d);}
+function accuracy(pev,sigmaa2){if(!pev||!sigmaa2) return null;const r=1-pev/sigmaa2;return r<0?0:Math.sqrt(r);}
+
+// ─── DATA COLLECTION ─────────────────────────────────────────────────────────
+function collectBLUP() {
+  const rows=[...document.querySelectorAll('#blup-manual-body tr')];
+  if(rows.length===0) throw new Error('No data. Please enter animals or load a CSV file.');
+  const animals = rows.map(tr=>{
+    const cells=tr.querySelectorAll('input');
+    const idVal=(cells[0]?.value.trim()||'');
+    const sireVal=(cells[1]?.value.trim()||'0');
+    const damVal=(cells[2]?.value.trim()||'0');
+    const pheno=cells[3]?cells[3].value.trim():'';
+    const sire=(sireVal===''||sireVal==='0')?null:sireVal;
+    const dam=(damVal===''||damVal==='0')?null:damVal;
+    return {id:idVal,sire,dam,phenotype:pheno===''?null:parseFloat(pheno),group:cells[4]?.value.trim()||'1'};
+  }).filter(a=>a.id);
+  if(animals.length===0) throw new Error('No data. Please enter animals or load a CSV file.');
+  const withRecords=animals.filter(a=>a.phenotype!==null&&!isNaN(a.phenotype));
+  if(withRecords.length<2) throw new Error('Need at least 2 animals with phenotype records.');
+  return animals;
+}
+function collectGBLUP() {
+  if(!state.gblup.snpMatrix) throw new Error('Please upload SNP marker data in the SNP tab (VCF, PED/MAP, or CSV).');
+
+  // Build a lookup: animalId -> row index in the SNP matrix
+  // Try both exact and numeric-normalised IDs (some tools pad IDs)
+  const genoIds = state.gblup.snpAnimalIds || [];
+  const genoIdx = {};
+  genoIds.forEach((id, i) => {
+    const s = String(id).trim();
+    genoIdx[s] = i;
+    genoIdx[s.replace(/^0+/,'')] = i; // strip leading zeros
+  });
+
+  // Read phenotype table
+  const rows = [...document.querySelectorAll('#gblup-manual-body tr')];
+  if(rows.length === 0) throw new Error('No phenotype data. Add animals with phenotype values.');
+
+  const matched = [];
+  const missing = [], noPhenotype = [];
+
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('input');
+    const id = cells[0]?.value.trim() || '';
+    if(!id) return;
+    const phenoStr = cells[1]?.value.trim() ?? '';
+    const phenotype = phenoStr === '' ? null : parseFloat(phenoStr);
+    if(phenotype === null || isNaN(phenotype)) { noPhenotype.push(id); return; }
+
+    // Find matching SNP row
+    const gi = genoIdx[id];
+    if(gi === undefined) { missing.push(id); return; }
+
+    matched.push({ id, phenotype, genoRow: state.gblup.snpMatrix[gi] });
+  });
+
+  if(matched.length < 2) {
+    let msg = 'Need at least 2 animals with BOTH phenotype AND genotype data.\n';
+    if(noPhenotype.length) msg += '• '+noPhenotype.length+' animal(s) have no phenotype entered: '+noPhenotype.slice(0,5).join(', ')+(noPhenotype.length>5?' …':'')+'\n';
+    if(missing.length)    msg += '• '+missing.length+' animal(s) in phenotype table not found in genomic file: '+missing.slice(0,5).join(', ')+(missing.length>5?' …':'')+'\n';
+    if(genoIds.length)    msg += '• Genomic file contains IDs: '+genoIds.slice(0,5).join(', ')+(genoIds.length>5?' …':'');
+    throw new Error(msg);
+  }
+
+  // Warn about unmatched animals but continue
+  if(missing.length > 0) console.warn('GBLUP: '+missing.length+' phenotype animals not in genomic file, skipped:', missing);
+
+  const animals   = matched.map(m => ({id: m.id, phenotype: m.phenotype}));
+  const snpMatrix = matched.map(m => m.genoRow);
+  return {animals, snpMatrix};
+}
+function collectREML() {
+  const rows=[...document.querySelectorAll('#reml-manual-body tr')];
+  if(rows.length===0) throw new Error('No data.');
+  return rows.map(tr=>{
+    const cells=tr.querySelectorAll('input');
+    const pheno=cells[3]?.value.trim()||'';
+    const sireVal=cells[1]?.value.trim()||'0';
+    const damVal=cells[2]?.value.trim()||'0';
+    const sire=(sireVal===''||sireVal==='0')?null:sireVal;
+    const dam=(damVal===''||damVal==='0')?null:damVal;
+    return {id:cells[0]?.value.trim()||'',sire,dam,phenotype:pheno===''?null:parseFloat(pheno)};
+  }).filter(a=>a.id);
+}
+function collectIndex() {
+  const n=parseInt(document.getElementById('idx-n-traits').value)||3;
+  const ng=parseInt(document.getElementById('idx-n-goal').value)||3;
+  const traitNames=[];
+  const vWeights=[];
+  const traitInputs=document.querySelectorAll('#idx-traits-body tr');
+  traitInputs.forEach(tr=>{
+    const cells=tr.querySelectorAll('input');
+    traitNames.push(cells[0]?.value.trim()||`T${traitNames.length+1}`);
+    vWeights.push(parseFloat(cells[1]?.value)||0);
+  });
+  const Pdata=[];
+  document.querySelectorAll('#idx-P-body tr').forEach(tr=>{
+    const row=[];
+    tr.querySelectorAll('input').forEach(inp=>row.push(parseFloat(inp.value)||0));
+    Pdata.push(row);
+  });
+  const Gdata=[];
+  document.querySelectorAll('#idx-G-body tr').forEach(tr=>{
+    const row=[];
+    tr.querySelectorAll('input').forEach(inp=>row.push(parseFloat(inp.value)||0));
+    Gdata.push(row);
+  });
+  const animals=[];
+  document.querySelectorAll('#idx-obs-body tr').forEach(tr=>{
+    const cells=tr.querySelectorAll('input');
+    const animal={id:cells[0]?.value||`A${animals.length+1}`};
+    traitNames.forEach((tn,i)=>{animal[tn]=parseFloat(cells[i+1]?.value)||0;});
+    animals.push(animal);
+  });
+  return {Pdata,Gdata,vWeights,traitNames,animals};
+}
+
+// ─── RUN ANALYSIS ─────────────────────────────────────────────────────────────
+function runAnalysis() {
+  const btn=document.getElementById('run-btn');
+  btn.innerHTML='<span class="spinner"></span> Computing...';btn.disabled=true;
+  setTimeout(()=>{
+    try {
+      let result;
+      if(state.method==='blup') {
+        const animals=collectBLUP();
+        const h2=parseFloat(document.getElementById('blup-h2').value);
+        const useGroups=document.getElementById('blup-fixed').value==='group';
+        const traitName=document.getElementById('blup-trait').value;
+        const r=solveBLUP(animals,h2,useGroups);
+        result={type:'blup',traitName,...r};
+      } else if(state.method==='gblup') {
+        const {animals,snpMatrix}=collectGBLUP();
+        const h2=parseFloat(document.getElementById('gblup-h2').value);
+        const gm=document.getElementById('gblup-method').value;
+        const traitName=document.getElementById('gblup-trait').value;
+        const r=solveGBLUP(animals,snpMatrix,h2,gm);
+        result={type:'gblup',traitName,...r};
+      } else if(state.method==='reml') {
+        const animals=collectREML();
+        const va0=parseFloat(document.getElementById('reml-va0').value);
+        const ve0=parseFloat(document.getElementById('reml-ve0').value);
+        const maxIter=parseInt(document.getElementById('reml-iter').value);
+        const conv=parseFloat(document.getElementById('reml-conv').value);
+        const r=solveREML(animals,va0,ve0,maxIter,conv);
+        result={type:'reml',...r};
+      } else if(state.method==='index') {
+        const {Pdata,Gdata,vWeights,traitNames,animals}=collectIndex();
+        const obsCols=traitNames;
+        const r=solveSelectionIndex(Pdata,Gdata,vWeights,traitNames,animals,obsCols);
+        result={type:'index',...r};
+      }
+      state.results=result;
+      displayResults(result);
+    } catch(e) {
+      alert('Error: '+e.message);
+    }
+    btn.innerHTML='▶ Run Analysis';btn.disabled=false;
+  },50);
+}
+
+// ─── DISPLAY RESULTS ─────────────────────────────────────────────────────────
+function displayResults(r) {
+  document.getElementById('results-section').classList.remove('hidden');
+  switchResTab('summary');
+  if(r.type==='blup') displayBLUPResults(r);
+  else if(r.type==='gblup') displayGBLUPResults(r);
+  else if(r.type==='reml') displayREMLResults(r);
+  else if(r.type==='index') displayIndexResults(r);
+  document.getElementById('results-section').scrollIntoView({behavior:'smooth'});
+}
+
+function displayBLUPResults(r) {
+  const phenoVals=r.withRecords.map(a=>parseFloat(a.phenotype));
+  const ebvArr=r.ebvArr;
+  const sigp=stdev(phenoVals);
+  const h2=1/(1+r.lambda);
+  const siga=sigp*Math.sqrt(h2);
+  // Stats
+  document.getElementById('res-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Animals</div><div class="stat-value accent">${r.sorted.length}</div><div class="stat-sub">${r.withRecords.length} with records</div></div>
+    <div class="stat-card"><div class="stat-label">λ (sigma_e/sigma_a)</div><div class="stat-value">${formatNum(r.lambda,3)}</div><div class="stat-sub">= (1-h²)/h²</div></div>
+    <div class="stat-card"><div class="stat-label">Mean EBV</div><div class="stat-value">${formatNum(mean(ebvArr),3)}</div><div class="stat-sub">Should ≈ 0</div></div>
+    <div class="stat-card"><div class="stat-label">EBV Range</div><div class="stat-value green">${formatNum(Math.max(...ebvArr)-Math.min(...ebvArr),3)}</div></div>
+    <div class="stat-card"><div class="stat-label">Phenotypic Mean</div><div class="stat-value">${formatNum(r.phenoMean,3)}</div></div>
+    <div class="stat-card"><div class="stat-label">σ²p (est.)</div><div class="stat-value amber">${formatNum(sigp**2,3)}</div></div>`;
+  document.getElementById('res-notice').innerHTML=`<div class="notice notice-success"><span class="notice-icon">✓</span>BLUP solved via Henderson's MME. EBVs represent deviations from the population mean. Best animal: <b>${r.sorted[ebvArr.indexOf(Math.max(...ebvArr))]?.id}</b> (EBV = ${formatNum(Math.max(...ebvArr),3)})</div>`;
+  // EBV table
+  const sorted_by_ebv=[...r.sorted.map((a,i)=>({...a,ebv:ebvArr[i],pev:r.PEVs[i]}))].sort((a,b)=>b.ebv-a.ebv);
+  document.getElementById('res-ebv-head').innerHTML=`<tr><th>Rank</th><th>Animal ID</th><th>Sire</th><th>Dam</th><th>Phenotype</th><th>EBV</th><th>PEV</th><th>Accuracy</th></tr>`;
+  document.getElementById('res-ebv-body').innerHTML=sorted_by_ebv.map((a,rank)=>{
+    const acc=a.pev!==null?accuracy(a.pev,siga**2):null;
+    return `<tr>
+      <td><span class="rank-badge">#${rank+1}</span></td>
+      <td style="font-weight:600">${a.id}</td>
+      <td>${a.sire||'—'}</td><td>${a.dam||'—'}</td>
+      <td>${a.phenotype!==null?formatNum(a.phenotype,2):'—'}</td>
+      <td class="${a.ebv>=0?'val-pos':'val-neg'}">${formatNum(a.ebv,4)}</td>
+      <td>${a.pev!==null?formatNum(a.pev,4):'—'}</td>
+      <td>${acc!==null?formatNum(acc,3):'—'}</td></tr>`;
+  }).join('');
+  // Charts
+  renderEBVChart(sorted_by_ebv.map(a=>a.id),sorted_by_ebv.map(a=>a.ebv),'EBV');
+  renderAccChart(sorted_by_ebv.map(a=>a.id),sorted_by_ebv.map(a=>{const acc=a.pev!==null?accuracy(a.pev,siga**2):0.5;return acc||0.5;}));
+  // Matrix display
+  showMatrixPreview(r.A,'A Matrix (Numerator Relationship)');
+}
+
+function displayGBLUPResults(r) {
+  const ebvArr=r.gebvArr;
+  document.getElementById('res-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Animals</div><div class="stat-value accent">${r.animals.length}</div><div class="stat-sub">All genotyped</div></div>
+    <div class="stat-card"><div class="stat-label">Overall Mean (μ̂)</div><div class="stat-value">${formatNum(r.mu,3)}</div></div>
+    <div class="stat-card"><div class="stat-label">Mean GEBV</div><div class="stat-value">${formatNum(mean(ebvArr),3)}</div></div>
+    <div class="stat-card"><div class="stat-label">GEBV Range</div><div class="stat-value green">${formatNum(Math.max(...ebvArr)-Math.min(...ebvArr),3)}</div></div>
+    <div class="stat-card"><div class="stat-label">Top Animal</div><div class="stat-value amber" style="font-size:14px">${r.animals[ebvArr.indexOf(Math.max(...ebvArr))]?.id}</div></div>`;
+  document.getElementById('res-notice').innerHTML=`<div class="notice notice-success"><span class="notice-icon">✓</span>GBLUP solved using genomic relationship matrix (G) via VanRaden (2008). GEBVs incorporate marker information for higher accuracy.</div>`;
+  const sorted_by_gebv=[...r.animals.map((a,i)=>({...a,gebv:ebvArr[i],rel:r.reliabilities[i]}))].sort((a,b)=>b.gebv-a.gebv);
+  document.getElementById('res-ebv-head').innerHTML=`<tr><th>Rank</th><th>Animal ID</th><th>Phenotype</th><th>GEBV</th><th>Reliability</th></tr>`;
+  document.getElementById('res-ebv-body').innerHTML=sorted_by_gebv.map((a,rank)=>`<tr>
+    <td><span class="rank-badge">#${rank+1}</span></td>
+    <td style="font-weight:600">${a.id}</td>
+    <td>${formatNum(parseFloat(a.phenotype),2)}</td>
+    <td class="${a.gebv>=0?'val-pos':'val-neg'}">${formatNum(a.gebv,4)}</td>
+    <td>${a.rel!==null?`<div style="display:flex;align-items:center;gap:8px"><div class="progress-bar" style="width:80px;margin:0"><div class="progress-fill" style="width:${(a.rel||0)*100}%"></div></div>${formatNum(a.rel,3)}</div>`:'—'}</td></tr>`).join('');
+  renderEBVChart(sorted_by_gebv.map(a=>a.id),sorted_by_gebv.map(a=>a.gebv),'GEBV');
+  renderAccChart(sorted_by_gebv.map(a=>a.id),sorted_by_gebv.map(a=>a.rel||0.5));
+  showMatrixPreview(r.G,'G Matrix (Genomic Relationship)');
+}
+
+function displayREMLResults(r) {
+  const lastDelta = r.history.length ? r.history[r.history.length-1].delta : null;
+  document.getElementById('res-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">σ²a (Additive)</div><div class="stat-value accent">${formatNum(r.va,2)}</div><div class="stat-sub">Genetic variance</div></div>
+    <div class="stat-card"><div class="stat-label">σ²e (Residual)</div><div class="stat-value">${formatNum(r.ve,2)}</div><div class="stat-sub">Environmental variance</div></div>
+    <div class="stat-card"><div class="stat-label">σ²p (observed)</div><div class="stat-value">${r.Vp!=null?formatNum(r.Vp,2):'—'}</div><div class="stat-sub">Sample variance of y</div></div>
+    <div class="stat-card"><div class="stat-label">σ²p (REML)</div><div class="stat-value">${formatNum(r.vp,2)}</div><div class="stat-sub">σ²a + σ²e</div></div>
+    <div class="stat-card"><div class="stat-label">h² (Estimated)</div><div class="stat-value green" style="font-size:26px">${formatNum(r.h2,4)}</div><div class="stat-sub">σ²a / (σ²a+σ²e)</div></div>
+    <div class="stat-card"><div class="stat-label">Converged</div><div class="stat-value ${r.converged?'green':'amber'}">${r.converged?'Yes':'No'}</div><div class="stat-sub">${r.history.length} iters · Δ=${lastDelta!=null?lastDelta.toExponential(2):'—'}</div></div>`;
+
+  const convMsg = r.converged
+    ? `EM-REML converged in <b>${r.history.length}</b> iterations. Estimated <b>h² = ${formatNum(r.h2,4)}</b>, σ²a = ${formatNum(r.va,2)}, σ²e = ${formatNum(r.ve,2)}.`
+    : `Did not converge in ${r.history.length} iterations (last Δ = ${lastDelta!=null?lastDelta.toExponential(2):'?'}). Try increasing Max Iterations or loosening ε. Current h² estimate = ${formatNum(r.h2,4)}.`;
+  document.getElementById('res-notice').innerHTML=`<div class="notice notice-${r.converged?'success':'warn'}"><span class="notice-icon">${r.converged?'✓':'⚠'}</span><div>${convMsg}</div></div>`;
+
+  // EBV table
+  if(r.finalEBV.length>0){
+    document.getElementById('res-ebv-head').innerHTML=`<tr><th>Rank</th><th>Animal ID</th><th>EBV (h²=${formatNum(r.h2,3)})</th></tr>`;
+    const sortedEBV=[...r.finalEBV].sort((a,b)=>b.ebv-a.ebv);
+    document.getElementById('res-ebv-body').innerHTML=sortedEBV.map((a,rank)=>`<tr>
+      <td><span class="rank-badge">#${rank+1}</span></td><td>${a.id}</td>
+      <td class="${a.ebv>=0?'val-pos':'val-neg'}">${formatNum(a.ebv,4)}</td></tr>`).join('');
+    renderEBVChart(sortedEBV.map(a=>a.id),sortedEBV.map(a=>a.ebv),'EBV (REML h²)');
+  }
+
+  // Convergence chart — dual axis: variances + relative delta
+  if(r.history.length>0){
+    const ctx=document.getElementById('acc-chart').getContext('2d');
+    if(state.charts.acc) state.charts.acc.destroy();
+    state.charts.acc=new Chart(ctx,{
+      type:'line',
+      data:{
+        labels:r.history.map(h=>h.iter),
+        datasets:[
+          {label:'σ²a',data:r.history.map(h=>h.va),borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,.05)',tension:.3,pointRadius:2,yAxisID:'y'},
+          {label:'σ²e',data:r.history.map(h=>h.ve),borderColor:'#f5a623',backgroundColor:'rgba(245,166,35,.05)',tension:.3,pointRadius:2,yAxisID:'y'},
+          {label:'h²',data:r.history.map(h=>h.h2),borderColor:'#00e59b',tension:.3,pointRadius:2,borderDash:[4,2],yAxisID:'y2'},
+          {label:'Rel.Δ (log)',data:r.history.map(h=>h.delta>0?Math.log10(h.delta):null),borderColor:'#a78bfa',tension:.3,pointRadius:2,borderDash:[2,4],yAxisID:'y3'}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{labels:{color:'#8ba0c4',font:{size:10}}}},
+        scales:{
+          x:{ticks:{color:'#8ba0c4',font:{size:10}},grid:{color:'#1e2d4a'},title:{display:true,text:'Iteration',color:'#4a6080'}},
+          y:{ticks:{color:'#8ba0c4',font:{size:10}},grid:{color:'#1e2d4a'},title:{display:true,text:'Variance',color:'#4a6080'},position:'left'},
+          y2:{ticks:{color:'#00e59b',font:{size:9}},grid:{display:false},title:{display:true,text:'h²',color:'#00e59b'},position:'right',min:0,max:1},
+          y3:{ticks:{color:'#a78bfa',font:{size:9}},grid:{display:false},title:{display:true,text:'log₁₀(Δ)',color:'#a78bfa'},position:'right'}
+        }
+      }
+    });
+  }
+
+  // Matrix tab — convergence table + final estimates
+  document.getElementById('mat-label-a').textContent='EM-REML Convergence Log (last 15 iters)';
+  const dispH = r.history.slice(-15);
+  const hdrCols = ['Iter','s2a','s2e','h2','Rel.D'];
+  const hdrWidths = [5,12,12,8,12];
+  const hdrLine = hdrCols.map((v,i)=>v.padStart(hdrWidths[i])).join('  ');
+  const sepLine = '-'.repeat(55);
+  const dataRows = dispH.map(function(h){
+    return String(h.iter).padStart(5)+'  '+
+      h.va.toFixed(4).padStart(12)+'  '+
+      h.ve.toFixed(4).padStart(12)+'  '+
+      h.h2.toFixed(4).padStart(8)+'  '+
+      (isNaN(h.delta)||h.delta==null?'  singular':h.delta.toExponential(3).padStart(12));
+  });
+  document.getElementById('mat-A').textContent = [hdrLine,sepLine].concat(dataRows).join('\n');
+  document.getElementById('mat-C').textContent = [
+    'FINAL VARIANCE COMPONENT ESTIMATES',
+    '='.repeat(36),
+    'sigma2_a (additive)  = '+formatNum(r.va,4),
+    'sigma2_e (residual)  = '+formatNum(r.ve,4),
+    'sigma2_p (REML)      = '+formatNum(r.vp,4),
+    'sigma2_p (observed)  = '+(r.Vp!=null?formatNum(r.Vp,4):'n/a'),
+    '-'.repeat(36),
+    'h2 = s2a / s2p       = '+formatNum(r.h2,6),
+    'e2 = s2e / s2p       = '+formatNum(1-r.h2,6),
+    '-'.repeat(36),
+    'sigma_a (genetic SD) = '+formatNum(Math.sqrt(Math.max(0,r.va)),4),
+    'sigma_e (resid  SD)  = '+formatNum(Math.sqrt(Math.max(0,r.ve)),4)
+  ].join('\n');
+}
+
+function displayIndexResults(r) {
+  document.getElementById('res-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Traits in Index</div><div class="stat-value accent">${r.traitNames.length}</div></div>
+    <div class="stat-card"><div class="stat-label">r(I,H)</div><div class="stat-value green">${formatNum(r.rIH,4)}</div><div class="stat-sub">Selection accuracy</div></div>
+    <div class="stat-card"><div class="stat-label">Var(H)</div><div class="stat-value">${formatNum(r.sigH2,4)}</div></div>
+    <div class="stat-card"><div class="stat-label">Var(I)</div><div class="stat-value">${formatNum(r.sigI2,4)}</div></div>
+    <div class="stat-card"><div class="stat-label">Top Animal</div><div class="stat-value amber" style="font-size:14px">${r.indexed[0]?.id||'—'}</div></div>`;
+  document.getElementById('res-notice').innerHTML=`<div class="notice notice-success"><span class="notice-icon">✓</span>Index weights computed: b = P⁻¹Gv. Weights: ${r.b.map((bi,i)=>`<b>${r.traitNames[i]}</b> = ${formatNum(bi,4)}`).join(', ')}. Expected genetic gain maximised with r(I,H) = ${formatNum(r.rIH,4)}.</div>`;
+  document.getElementById('res-ebv-head').innerHTML=`<tr><th>Rank</th><th>Animal</th>${r.traitNames.map(t=>`<th>${t}</th>`).join('')}<th>Index (I)</th></tr>`;
+  document.getElementById('res-ebv-body').innerHTML=r.indexed.map((a,rank)=>`<tr>
+    <td><span class="rank-badge">#${rank+1}</span></td>
+    <td style="font-weight:600">${a.id}</td>
+    ${r.traitNames.map(t=>`<td>${formatNum(a.x[r.traitNames.indexOf(t)],2)}</td>`).join('')}
+    <td class="val-pos" style="font-weight:600">${formatNum(a.I,4)}</td></tr>`).join('');
+  renderEBVChart(r.indexed.map(a=>a.id),r.indexed.map(a=>a.I),'Selection Index');
+  const ctx=document.getElementById('acc-chart').getContext('2d');
+  if(state.charts.acc) state.charts.acc.destroy();
+  state.charts.acc=new Chart(ctx,{type:'bar',data:{labels:r.traitNames,datasets:[{label:'Index Weight (b)',data:r.b,backgroundColor:r.b.map(v=>v>=0?'rgba(0,229,155,.6)':'rgba(255,77,109,.6)'),borderColor:r.b.map(v=>v>=0?'#00e59b':'#ff4d6d'),borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8ba0c4'}}},scales:{x:{ticks:{color:'#8ba0c4'},grid:{color:'#1e2d4a'}},y:{ticks:{color:'#8ba0c4'},grid:{color:'#1e2d4a'}}}}});
+  document.getElementById('mat-label-a').textContent='Index Weights (b = P⁻¹Gv)';
+  document.getElementById('mat-A').textContent=r.traitNames.map((t,i)=>`${t.padEnd(20)} b = ${formatNum(r.b[i],6)}`).join('\n');
+}
+
+function renderEBVChart(labels,values,label) {
+  const ctx=document.getElementById('ebv-chart').getContext('2d');
+  if(state.charts.ebv) state.charts.ebv.destroy();
+  state.charts.ebv=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label,data:values,backgroundColor:values.map(v=>v>=0?'rgba(0,200,255,.5)':'rgba(255,77,109,.5)'),borderColor:values.map(v=>v>=0?'#00c8ff':'#ff4d6d'),borderWidth:1,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{labels:{color:'#8ba0c4',font:{size:11}}}},scales:{x:{ticks:{color:'#8ba0c4',font:{size:10}},grid:{color:'#1e2d4a'},title:{display:true,text:label,color:'#4a6080'}},y:{ticks:{color:'#e2eaf8',font:{size:10}},grid:{color:'#1e2d4a'}}}}});
+}
+function renderAccChart(labels,values) {
+  const ctx=document.getElementById('acc-chart').getContext('2d');
+  if(state.charts.acc) state.charts.acc.destroy();
+  state.charts.acc=new Chart(ctx,{type:'scatter',data:{labels,datasets:[{label:'Accuracy',data:values.map((v,i)=>({x:i+1,y:v||0.5})),backgroundColor:'rgba(0,229,155,.6)',borderColor:'#00e59b',pointRadius:5,pointHoverRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8ba0c4',font:{size:11}}},tooltip:{callbacks:{title:i=>labels[i[0].dataIndex]}}},scales:{x:{ticks:{color:'#8ba0c4',font:{size:10}},grid:{color:'#1e2d4a'},title:{display:true,text:'Animal (by rank)',color:'#4a6080'}},y:{min:0,max:1,ticks:{color:'#8ba0c4',font:{size:10}},grid:{color:'#1e2d4a'},title:{display:true,text:'Accuracy',color:'#4a6080'}}}}});
+}
+function showMatrixPreview(M,label) {
+  document.getElementById('mat-label-a').textContent=label;
+  const sz=Math.min(M.r,6);
+  const lines=[];
+  for(let i=0;i<sz;i++) lines.push(M.data[i].slice(0,sz).map(v=>v.toFixed(3).padStart(8)).join(' '));
+  if(M.r>6) lines.push(`  ... (${M.r}×${M.c} full matrix)`);
+  document.getElementById('mat-A').textContent=lines.join('\n');
+}
+
+// ─── UI CONTROLS ─────────────────────────────────────────────────────────────
+function switchMethod(method) {
+  state.method=method;
+  document.querySelectorAll('.method-btn').forEach(b=>b.classList.toggle('active',b.dataset.method===method));
+  ['blup','gblup','reml','index'].forEach(m=>document.getElementById(`section-${m}`).classList.toggle('hidden',m!==method));
+  const titles={blup:'Animal BLUP — Pedigree-Based Breeding Values',gblup:'Genomic BLUP — SNP Marker-Based GEBVs',reml:'REML — Variance Component Estimation',index:'Selection Index — Hazel (1943) Method'};
+  const labels={blup:'BLUP',gblup:'GBLUP',reml:'REML',index:'SI'};
+  document.getElementById('topbar-title').textContent=titles[method];
+  document.getElementById('topbar-method').textContent=labels[method];
+  document.getElementById('results-section').classList.add('hidden');
+}
+
+function switchTab(section, tab) {
+  const tabs=document.querySelectorAll(`#${section}-tabs .tab`)||document.querySelectorAll(`.tabs .tab`);
+  document.querySelectorAll(`[id^="${section}-tab-"]`).forEach(el=>{
+    el.classList.toggle('active',el.id===`${section}-tab-${tab}`);
+  });
+  // also toggle tab headers
+  const container=document.getElementById(`${section}-tabs`)||(document.querySelectorAll('.tabs')[['blup','gblup','reml','index'].indexOf(section)]||null);
+  if(container) {
+    const tbs=container.querySelectorAll('.tab');
+    const tabNames={'manual':0,'csv':1,'pedigree':2,'snp':2};
+    tbs.forEach((t,i)=>t.classList.toggle('active',i===(tabNames[tab]??0)));
+  }
+}
+
+function switchResTab(tab) {
+  ['summary','ebv','chart','matrix'].forEach(t=>{
+    document.getElementById(`res-tab-${t}`).classList.toggle('hidden',t!==tab);
+  });
+  document.querySelectorAll('.res-tab').forEach((btn,i)=>{
+    btn.classList.toggle('active',['summary','ebv','chart','matrix'][i]===tab);
+  });
+}
+
+// ─── MANUAL TABLE ROWS ───────────────────────────────────────────────────────
+function addManualRow(method) {
+  const bodies={blup:'blup-manual-body',gblup:'gblup-manual-body',reml:'reml-manual-body'};
+  const tbody=document.getElementById(bodies[method]);
+  if(!tbody) return;
+  const i=tbody.children.length+1;
+  const tr=document.createElement('tr');
+  if(method==='blup'||method==='reml') {
+    const extra=method==='blup'?`<td><input class="form-input" style="width:80px" placeholder="1"></td>`:'';
+    tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i}</td><td><input class="form-input" style="width:90px" placeholder="A${i}"></td><td><input class="form-input" style="width:80px" placeholder="0"></td><td><input class="form-input" style="width:80px" placeholder="0"></td><td><input class="form-input" style="width:90px" placeholder=""></td>${extra}<td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer;font-size:16px">×</button></td>`;
+  } else if(method==='gblup') {
+    tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i}</td><td><input class="form-input" style="width:100px" placeholder="A${i}"></td><td><input class="form-input" style="width:100px" placeholder=""></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer;font-size:16px">×</button></td>`;
+  }
+  tbody.appendChild(tr);
+}
+
+// ─── INDEX TABLE BUILDER ─────────────────────────────────────────────────────
+function buildIndexTables() {
+  const n=parseInt(document.getElementById('idx-n-traits').value)||3;
+  const ng=parseInt(document.getElementById('idx-n-goal').value)||3;
+  // Trait names + weights
+  const tb=document.getElementById('idx-traits-body'); tb.innerHTML='';
+  const defaultTraits=['Milk','Fat','Protein','SCS','Fertility','Growth','Conformation','Longevity'];
+  const defaultWeights=[1.5,2.0,3.0,0.5,0.8,1.2,0.3,0.6];
+  for(let i=0;i<n;i++){const tr=document.createElement('tr');tr.innerHTML=`<td><input class="form-input" style="width:120px" value="${defaultTraits[i]||'Trait'+(i+1)}"></td><td><input class="form-input" style="width:80px" value="${defaultWeights[i]||1}"></td>`;tb.appendChild(tr);}
+  // P matrix
+  const Pb=document.getElementById('idx-P-body'); Pb.innerHTML='';
+  for(let i=0;i<n;i++){const tr=document.createElement('tr');let html='';for(let j=0;j<n;j++){const v=i===j?100+i*20:(i===j-1||i===j+1)?30:10;html+=`<td><input class="form-input" style="width:70px" value="${v}"></td>`;}Pb.appendChild(tr);tr.innerHTML=html;}
+  // G matrix
+  const Gb=document.getElementById('idx-G-body'); Gb.innerHTML='';
+  for(let i=0;i<n;i++){const tr=document.createElement('tr');let html='';for(let j=0;j<ng;j++){const v=i===j?40+i*10:15;html+=`<td><input class="form-input" style="width:70px" value="${v}"></td>`;}Gb.appendChild(tr);tr.innerHTML=html;}
+  // Obs table header
+  const traitNames=[];document.querySelectorAll('#idx-traits-body tr').forEach(tr=>{traitNames.push(tr.querySelector('input').value||`T${traitNames.length+1}`);});
+  document.getElementById('idx-obs-header').colSpan=n;
+  document.getElementById('idx-obs-header').innerHTML=traitNames.map(t=>`<th style="padding:8px 10px;font-size:11px;color:var(--text3)">${t}</th>`).join('');
+  document.getElementById('idx-obs-body').innerHTML='';
+}
+function addIndexAnimal() {
+  const n=parseInt(document.getElementById('idx-n-traits').value)||3;
+  const tbody=document.getElementById('idx-obs-body');
+  const i=tbody.children.length+1;
+  const tr=document.createElement('tr');
+  let html=`<td><input class="form-input" style="width:80px" value="A${i}"></td>`;
+  for(let j=0;j<n;j++) html+=`<td><input class="form-input" style="width:70px" value="${(Math.random()*100+50).toFixed(1)}"></td>`;
+  html+=`<td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer;font-size:16px">×</button></td>`;
+  tr.innerHTML=html; tbody.appendChild(tr);
+}
+
+// ─── FILE UPLOADS ─────────────────────────────────────────────────────────────
+
+// Flexible column finder: tries multiple aliases
+function findCol(row, aliases) {
+  for(const a of aliases) {
+    for(const k of Object.keys(row)) {
+      if(k.toLowerCase().replace(/[\s_\-\.'"]/g,'')===a.replace(/[\s_\-\.'"]/g,'')) return row[k];
+    }
+  }
+  return '';
+}
+
+function parseCSV(text) {
+  // Strip BOM and normalize line endings
+  text = text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines = text.split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  // Parse headers
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/['"]/g,'').toLowerCase());
+  return lines.slice(1).map(line=>{
+    // Handle quoted fields with commas
+    const vals=[]; let cur='', inQ=false;
+    for(let c of line){if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){vals.push(cur.trim());cur='';}else{cur+=c;}}
+    vals.push(cur.trim());
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=(vals[i]||'').replace(/['"]/g,'').trim());
+    return obj;
+  }).filter(row=>Object.values(row).some(v=>v!==''));
+}
+
+function addPhantomParents(data) {
+  // Collect all animal IDs
+  const knownIds = new Set(data.map(r=>String(r._id)));
+  const toAdd = new Map();
+  data.forEach(r=>{
+    ['_sire','_dam'].forEach(key=>{
+      const pid=String(r[key]||'').trim();
+      if(pid&&pid!=='0'&&!knownIds.has(pid)&&!toAdd.has(pid)){
+        toAdd.set(pid,{_id:pid,_sire:'0',_dam:'0',_pheno:'',_group:'1'});
+      }
+    });
+  });
+  // Add parents of parents recursively (one level)
+  return [...toAdd.values(), ...data];
+}
+
+function removeDuplicates(data) {
+  const seen = new Set();
+  return data.filter(r=>{
+    const key=r._id;
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+}
+
+function handleFileUpload(event, target) {
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let rawData=[];
+    if(file.name.match(/\.xlsx?$/i)){
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      rawData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      rawData=rawData.map(row=>{const obj={};Object.keys(row).forEach(k=>obj[k.toLowerCase().replace(/\s+/g,'_').replace(/['"]/g,'')]=String(row[k]).trim());return obj;});
+    } else {
+      rawData=parseCSV(e.target.result);
+    }
+
+    if(target.startsWith('blup')||target.startsWith('reml')) {
+      const method=target.split('-')[0];
+      // Map to internal fields with flexible aliases
+      let mapped = rawData.map(row=>({
+        _id:   String(findCol(row,['animal_id','animal','id','animalid'])||'').trim(),
+        _sire: String(findCol(row,['sire_id','sire','father','sireid','sire '])||'0').trim(),
+        _dam:  String(findCol(row,['dam_id','dam','mother','damid'])||'0').trim(),
+        _pheno:String(findCol(row,['total_milk_yield','totalmilkyield','phenotype','pheno','value','trait','milk','yield','observation','obs'])||'').trim(),
+        _group:String(findCol(row,['group','herd','contemporary_group','farm'])||'1').trim(),
+      })).filter(r=>r._id);
+
+      // Remove duplicates
+      mapped = removeDuplicates(mapped);
+
+      // Add phantom parents (sires/dams not in the dataset)
+      const withParents = addPhantomParents(mapped);
+
+      const tbody=document.getElementById(`${method}-manual-body`); tbody.innerHTML='';
+      withParents.forEach(r=>{
+        const tr=document.createElement('tr'); const i=tbody.children.length+1;
+        if(method==='blup')
+          tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i}</td><td><input class="form-input" style="width:90px" value="${r._id}"></td><td><input class="form-input" style="width:80px" value="${r._sire||'0'}"></td><td><input class="form-input" style="width:80px" value="${r._dam||'0'}"></td><td><input class="form-input" style="width:90px" value="${r._pheno}"></td><td><input class="form-input" style="width:80px" value="${r._group}"></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>`;
+        else
+          tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i}</td><td><input class="form-input" style="width:90px" value="${r._id}"></td><td><input class="form-input" style="width:80px" value="${r._sire||'0'}"></td><td><input class="form-input" style="width:80px" value="${r._dam||'0'}"></td><td><input class="form-input" style="width:90px" value="${r._pheno}"></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>`;
+        tbody.appendChild(tr);
+      });
+      const dupeCount = rawData.length - removeDuplicates(rawData.map(r=>({_id:String(findCol(r,['animal_id','animal','id','animalid'])||'')}))).length;
+      const phantomCount = withParents.length - removeDuplicates(mapped).length;
+      showBadge(`${target}-badge`,`${file.name} — ${mapped.length} animals${phantomCount>0?` + ${phantomCount} phantom parents`:''}${dupeCount>0?` (${dupeCount} dupes removed)`:''}`);
+    } else if(target==='gblup-csv'){
+      const tbody=document.getElementById('gblup-manual-body'); tbody.innerHTML='';
+      rawData.forEach(row=>{
+        const tr=document.createElement('tr');const i=tbody.children.length+1;
+        const id=findCol(row,['animal_id','animal','id'])||'';
+        const pheno=findCol(row,['phenotype','pheno','value','milk','yield'])||'';
+        tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i}</td><td><input class="form-input" style="width:100px" value="${id}"></td><td><input class="form-input" style="width:100px" value="${pheno}"></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>`;
+        tbody.appendChild(tr);
+      });
+      showBadge(`gblup-csv-badge`,`${file.name} (${rawData.length} rows)`);
+    }
+  };
+  if(file.name.match(/\.xlsx?$/i)) reader.readAsBinaryString(file);
+  else reader.readAsText(file, 'utf-8');
+}
+// ─── GENOMIC FILE PARSERS ─────────────────────────────────────────────────────
+
+// shared state for PED+MAP
+state.gblup._mapNames = null;
+
+function switchSNPFormat(fmt) {
+  ['vcf','ped','csv'].forEach(f=>{
+    document.getElementById('snp-panel-'+f).classList.toggle('hidden', f!==fmt);
+    document.getElementById('snp-fmt-'+f).classList.toggle('active', f===fmt);
+  });
+}
+
+function showGenoResult(n, m, fmt, extra) {
+  const el = document.getElementById('snp-preview');
+  el.innerHTML = '<div class="notice notice-success" style="margin-top:4px"><span class="notice-icon">✓</span><div><b>'+fmt+'</b> parsed: <b>'+n+' animals</b> × <b>'+m+' markers</b>. Stored as 0/1/2 dosage matrix ready for G-matrix construction. '+(extra||'')+'</div></div><div style="margin-top:10px"><div class="form-label" style="margin-bottom:5px">Preview (first 5 animals × 8 markers)</div><div class="matrix-preview" id="geno-preview-mat"></div></div>';
+  const mat = state.gblup.snpMatrix;
+  const names = state.gblup.markerNames;
+  if(mat && mat.length) {
+    const rows = Math.min(5, mat.length);
+    const cols = Math.min(8, mat[0].length);
+    const header = '         ' + names.slice(0,cols).map(n=>n.slice(0,6).padStart(7)).join('');
+    const lns = [header];
+    for(let i=0;i<rows;i++){
+      const id = (state.gblup.snpAnimalIds||[])[i]||('A'+(i+1));
+      lns.push(id.slice(0,8).padEnd(9) + mat[i].slice(0,cols).map(v=>String(v).padStart(7)).join(''));
+    }
+    const pv = document.getElementById('geno-preview-mat');
+    if(pv) pv.textContent = lns.join('\n');
+  }
+}
+
+// ── VCF parser ────────────────────────────────────────────────────────────────
+function handleVCF(event) {
+  const file = event.target.files[0]; if(!file) return;
+  showBadge('vcf-badge', 'Reading '+file.name+'…');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = e.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+      const lines = text.split('\n');
+      let headerLine = null;
+      const dataLines = [];
+      for(const line of lines) {
+        if(line.startsWith('##')) continue;
+        if(line.startsWith('#CHROM')) { headerLine = line; continue; }
+        if(line.trim()) dataLines.push(line);
+      }
+      if(!headerLine) throw new Error('No #CHROM header line found in VCF');
+      const cols = headerLine.replace(/^#/,'').split('\t');
+      const fmtIdx = cols.findIndex(c=>c.toUpperCase()==='FORMAT');
+      const sampleStart = fmtIdx >= 0 ? fmtIdx+1 : 9;
+      const sampleIds = cols.slice(sampleStart);
+      if(sampleIds.length === 0) throw new Error('No sample columns found in VCF');
+      const nSamples = sampleIds.length;
+      const markerNames = [];
+      const dosageByAnimal = Array.from({length:nSamples}, function(){return [];});
+      for(const line of dataLines) {
+        const fields = line.split('\t');
+        if(fields.length < sampleStart+1) continue;
+        const chrom=fields[0]||'?', pos=fields[1]||'?', markId=fields[2]||'.';
+        const mname = (markId==='.'||markId==='') ? (chrom+'_'+pos) : markId;
+        markerNames.push(mname);
+        const fmt = (fields[fmtIdx]||'GT').split(':');
+        const gtIdx = fmt.indexOf('GT');
+        for(let s=0; s<nSamples; s++) {
+          const sf = fields[sampleStart+s]||'./.';
+          const gtStr = sf.split(':')[gtIdx>=0?gtIdx:0];
+          dosageByAnimal[s].push(vcfGTtoDosage(gtStr));
+        }
+      }
+      if(markerNames.length === 0) throw new Error('No variant records found in VCF');
+      state.gblup.snpMatrix = dosageByAnimal;
+      state.gblup.markerNames = markerNames;
+      state.gblup.snpAnimalIds = sampleIds;
+      autoPopulateGBLUPanimals(sampleIds);
+      showBadge('vcf-badge', file.name+' — '+nSamples+' samples × '+markerNames.length+' variants');
+      showGenoResult(nSamples, markerNames.length, 'VCF');
+    } catch(err) {
+      document.getElementById('snp-preview').innerHTML = '<div class="notice notice-warn"><span class="notice-icon">⚠</span>'+err.message+'</div>';
+      showBadge('vcf-badge', 'Error: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function vcfGTtoDosage(gt) {
+  if(!gt||gt==='.'||gt==='./.') return 0;
+  const alleles = gt.replace(/\|/g,'/').split('/');
+  let dosage = 0;
+  for(const a of alleles) { if(a!=='.'&&a!=='0') dosage++; }
+  return Math.min(2, dosage);
+}
+
+// ── MAP parser ────────────────────────────────────────────────────────────────
+function handleMAP(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const sizeMB = (file.size/1048576).toFixed(1);
+  showBadge('map-badge', 'Reading ' + file.name + ' (' + sizeMB + ' MB)…');
+  file.text().then(function(text) {
+    const lines = text.replace(/\r/g,'').split('\n')
+      .filter(function(l){ return l.trim() && !l.startsWith('#'); });
+    // Parse: CHR SNP CM BP  (tab or space delimited)
+    const names = [], positions = [];
+    for(const l of lines) {
+      const parts = l.trim().split(/\t|\s+/);
+      const name = (parts[1] && parts[1]!=='.' && parts[1]!=='-9') 
+                     ? parts[1] 
+                     : (parts[0]||'?') + '_' + (parts[3]||'?');
+      names.push(name);
+      positions.push({ chr: parts[0]||'?', bp: parseInt(parts[3])||0 });
+    }
+    state.gblup._mapNames     = names;
+    state.gblup._mapPositions = positions;
+    state.gblup._mapLoaded    = true;
+
+    // Pre-select random marker indices if > maxMarkers
+    const maxM = parseInt(document.getElementById('ped-max-markers')?.value) || 10000;
+    if(names.length > maxM) {
+      // random subsample without replacement
+      const idx = Array.from({length: names.length}, function(_,i){ return i; });
+      for(let i = idx.length-1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [idx[i],idx[j]] = [idx[j],idx[i]];
+      }
+      state.gblup._selectedIdx = idx.slice(0, maxM).sort(function(a,b){return a-b;});
+    } else {
+      state.gblup._selectedIdx = Array.from({length:names.length},function(_,i){return i;});
+    }
+
+    const sel = state.gblup._selectedIdx.length;
+    const subsampleNote = names.length > sel
+      ? ' — <b>' + sel.toLocaleString() + '</b> randomly subsampled from <b>' + names.length.toLocaleString() + '</b>'
+      : '';
+    showBadge('map-badge', file.name + ' — ' + names.length.toLocaleString() + ' markers' + (names.length>sel?' (subsampling to '+sel.toLocaleString()+')':''));
+    document.getElementById('snp-preview').innerHTML =
+      '<div class="notice notice-' + (names.length>sel?'warn':'info') + '">' +
+      '<span class="notice-icon">' + (names.length>sel?'⚡':'ℹ') + '</span>' +
+      '<div>MAP loaded: <b>' + names.length.toLocaleString() + ' markers</b>' + subsampleNote + '. ' +
+      (names.length>sel ? 'Subsampling is necessary for browser-based GBLUP. Adjust "Max markers" above and re-upload to change. ' : '') +
+      'Now upload the PED file.</div></div>';
+  }).catch(function(err){
+    showBadge('map-badge', 'Error reading MAP: ' + err.message);
+  });
+}
+
+// ── PED parser (streaming, marker-subsampled) ─────────────────────────────────
+function handlePED(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const sizeMB = (file.size/1048576).toFixed(1);
+  showBadge('ped-geno-badge', 'Reading ' + file.name + ' (' + sizeMB + ' MB) — please wait…');
+  const progEl = document.getElementById('ped-progress');
+  if(progEl) { progEl.style.display=''; progEl.textContent='Parsing…'; }
+
+  file.text().then(function(text) {
+    try {
+      if(progEl) progEl.textContent = 'Splitting lines…';
+      const lines = text.replace(/\r/g,'').split('\n')
+        .filter(function(l){ return l.trim() && !l.startsWith('#'); });
+      text = null; // free memory ASAP
+
+      if(lines.length === 0) throw new Error('PED file appears empty');
+
+      // Detect delimiter (tab or space)
+      const firstLine = lines[0];
+      const delim = firstLine.includes('\t') ? '\t' : /\s+/;
+
+      if(progEl) progEl.textContent = 'Reading individuals…';
+
+      const animalIds = [];
+      // For each line store only selected allele-pair indices
+      const selectedIdx = state.gblup._selectedIdx || null;
+
+      // Pass 1: collect IDs and raw alleles at selected positions only
+      const rawSelected = []; // [animal][markerIdx] = [a1,a2]
+      for(const line of lines) {
+        const parts = typeof delim==='string' ? line.split(delim) : line.trim().split(delim);
+        if(parts.length < 7) continue;
+        const iid = parts[1].trim();
+        animalIds.push(iid);
+        const alleleStart = 6;
+        if(selectedIdx) {
+          const row = new Array(selectedIdx.length);
+          for(let si=0; si<selectedIdx.length; si++) {
+            const mi = selectedIdx[si];
+            const ai = alleleStart + mi*2;
+            row[si] = [parts[ai]||'0', parts[ai+1]||'0'];
+          }
+          rawSelected.push(row);
+        } else {
+          const nPairs = Math.floor((parts.length - alleleStart)/2);
+          const row = new Array(nPairs);
+          for(let mi=0; mi<nPairs; mi++) {
+            const ai = alleleStart + mi*2;
+            row[mi] = [parts[ai]||'0', parts[ai+1]||'0'];
+          }
+          rawSelected.push(row);
+        }
+      }
+
+      if(animalIds.length === 0) throw new Error('No individuals found in PED file. Check format: FID IID PID MID SEX PHENO A1 A2…');
+
+      const nAnimals = animalIds.length;
+      const nMarkers  = rawSelected[0].length;
+
+      if(progEl) progEl.textContent = 'Recoding to 0/1/2…';
+
+      // Pass 2: recode alleles to dosage per marker (minor-allele count)
+      const dosageMatrix = Array.from({length:nAnimals}, function(){ return new Int8Array(nMarkers); });
+      for(let m=0; m<nMarkers; m++) {
+        // count allele frequencies across animals
+        const freq = {};
+        for(let i=0;i<nAnimals;i++){
+          const a1=rawSelected[i][m][0], a2=rawSelected[i][m][1];
+          if(a1!=='0'&&a1!=='N') freq[a1]=(freq[a1]||0)+1;
+          if(a2!=='0'&&a2!=='N') freq[a2]=(freq[a2]||0)+1;
+        }
+        const allelesSorted = Object.entries(freq).sort(function(a,b){return b[1]-a[1];});
+        const refAllele = allelesSorted.length > 0 ? allelesSorted[0][0] : null;
+        for(let i=0;i<nAnimals;i++){
+          const a1=rawSelected[i][m][0], a2=rawSelected[i][m][1];
+          let dose=0;
+          if(refAllele){
+            if(a1!=='0'&&a1!=='N'&&a1!==refAllele) dose++;
+            if(a2!=='0'&&a2!=='N'&&a2!==refAllele) dose++;
+          }
+          dosageMatrix[i][m] = dose;
+        }
+      }
+
+      // Resolve marker names from MAP
+      const allMapNames = state.gblup._mapNames || [];
+      const chosenIdx   = state.gblup._selectedIdx || Array.from({length:nMarkers},function(_,i){return i;});
+      const markerNames = chosenIdx.map(function(i){ return allMapNames[i] || ('SNP'+(i+1)); });
+
+      // Convert Int8Array rows to plain arrays for downstream compatibility
+      state.gblup.snpMatrix     = dosageMatrix.map(function(r){ return Array.from(r); });
+      state.gblup.markerNames   = markerNames;
+      state.gblup.snpAnimalIds  = animalIds;
+      autoPopulateGBLUPanimals(animalIds);
+
+      if(progEl) { progEl.style.display='none'; }
+
+      const mapNote = allMapNames.length > 0 ? '' :
+        '<b>Tip:</b> No MAP file detected — markers named SNP1…SNPn. Upload MAP first for real names.';
+      const subsNote = (allMapNames.length > nMarkers) ?
+        ' (subsampled from ' + allMapNames.length.toLocaleString() + ')' : '';
+
+      showBadge('ped-geno-badge', file.name + ' — ' + nAnimals + ' animals × ' + nMarkers.toLocaleString() + ' markers' + subsNote);
+      showGenoResult(nAnimals, nMarkers, 'PLINK PED/MAP', mapNote);
+
+    } catch(err) {
+      if(progEl) progEl.style.display='none';
+      document.getElementById('snp-preview').innerHTML =
+        '<div class="notice notice-warn"><span class="notice-icon">⚠</span>' +
+        '<div><b>PED parse error:</b> ' + err.message + '<br>' +
+        '<span style="color:var(--text3);font-size:11px">Expected format: FID IID PID MID SEX PHENO A1 A2 A3 A4 … (space or tab delimited)</span></div></div>';
+      showBadge('ped-geno-badge', 'Parse error — see details above');
+    }
+  }).catch(function(err){
+    if(progEl) progEl.style.display='none';
+    showBadge('ped-geno-badge', 'Could not read file: ' + err.message);
+  });
+}
+
+// ── CSV 0/1/2 parser ───────────────────────────────────────────────────────────
+function handleSNPCSV(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = e.target.result.replace(/^\uFEFF/,'').replace(/\r/g,'');
+      const lines = text.split('\n').filter(function(l){return l.trim();});
+      const headers = lines[0].split(',').map(function(h){return h.trim();});
+      state.gblup.markerNames = headers.slice(1);
+      const animalIds = [];
+      state.gblup.snpMatrix = lines.slice(1).map(function(line){
+        const vals = line.split(',');
+        animalIds.push((vals[0]||'').trim());
+        return vals.slice(1).map(function(v){return Math.min(2,Math.max(0,parseInt(v.trim())||0));});
+      });
+      state.gblup.snpAnimalIds = animalIds;
+      autoPopulateGBLUPanimals(animalIds);
+      const n=state.gblup.snpMatrix.length, m=state.gblup.markerNames.length;
+      showBadge('snp-csv-badge', file.name+': '+n+' animals × '+m+' markers');
+      showGenoResult(n, m, 'CSV (0/1/2)');
+    } catch(err) {
+      document.getElementById('snp-preview').innerHTML = '<div class="notice notice-warn"><span class="notice-icon">⚠</span>'+err.message+'</div>';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// legacy alias
+function handleSNPFile(event) { handleSNPCSV(event); }
+
+// drag-drop dispatcher
+function handleGenoDrop(event, target) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag');
+  const file = event.dataTransfer.files[0]; if(!file) return;
+  const fakeEvent = {target:{files:[file]}};
+  if(target==='vcf') handleVCF(fakeEvent);
+  else if(target==='map') handleMAP(fakeEvent);
+  else if(target==='ped') handlePED(fakeEvent);
+  else handleSNPCSV(fakeEvent);
+}
+
+// auto-fill phenotype table from genomic file animal IDs
+function autoPopulateGBLUPanimals(ids) {
+  const tbody = document.getElementById('gblup-manual-body');
+  if(!tbody || tbody.children.length > 0) return;
+  ids.forEach(function(id,i){
+    const tr = document.createElement('tr');
+    tr.innerHTML='<td style="color:var(--text3);font-size:11px;padding:4px 10px">'+(i+1)+'</td><td><input class="form-input" style="width:100px" value="'+id+'"></td><td><input class="form-input" style="width:100px" placeholder="phenotype"></td><td><button onclick="this.closest(\'tr\').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function handlePedigreeFile(event) {
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim());
+    state.blup.pedigree=lines.slice(1).map(l=>{const [id,sire,dam]=l.split(',').map(s=>s.trim());return {id,sire,dam};});
+    showBadge('ped-badge',`${file.name} (${state.blup.pedigree.length} animals)`);
+  };
+  reader.readAsText(file);
+}
+function handlePhenoFile(event) {
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim());
+    const headers=lines[0].split(',').map(h=>h.trim().toLowerCase());
+    const data=lines.slice(1).map(l=>{const vals=l.split(',');const obj={};headers.forEach((h,i)=>obj[h]=vals[i]?.trim());return obj;});
+    const phenoMap={};data.forEach(r=>phenoMap[r.id||r.animal_id]=parseFloat(r.phenotype||r.pheno));
+    // Merge with pedigree
+    if(state.blup.pedigree) {
+      const merged=state.blup.pedigree.map(a=>({...a,phenotype:phenoMap[a.id]||null}));
+      const tbody=document.getElementById('blup-manual-body'); tbody.innerHTML='';
+      merged.forEach((a,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i+1}</td><td><input class="form-input" style="width:90px" value="${a.id||''}"></td><td><input class="form-input" style="width:80px" value="${a.sire||'0'}"></td><td><input class="form-input" style="width:80px" value="${a.dam||'0'}"></td><td><input class="form-input" style="width:90px" value="${a.phenotype||''}"></td><td><input class="form-input" style="width:80px" value="1"></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>`;tbody.appendChild(tr);});
+    }
+    showBadge('pheno-badge',`${file.name} (${data.length} records)`);
+  };
+  reader.readAsText(file);
+}
+function handleDrop(event,target) {
+  event.preventDefault(); document.getElementById(target+'-zone')?.classList.remove('drag');
+  const file=event.dataTransfer.files[0]; if(!file) return;
+  const input=document.getElementById(target+'-file'); if(input){const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;input.dispatchEvent(new Event('change'));}
+}
+function showBadge(id,text){const el=document.getElementById(id);if(el)el.innerHTML=`<div class="file-badge">✓ ${text}</div>`;}
+
+// ─── EXPORT ──────────────────────────────────────────────────────────────────
+function exportResults() {
+  if(!state.results) return;
+  const r=state.results; let csv='';
+  if(r.type==='blup'||r.type==='gblup') {
+    const items=r.type==='blup'?r.sorted.map((a,i)=>({id:a.id,ebv:r.ebvArr[i]})):[...r.animals.map((a,i)=>({id:a.id,ebv:r.gebvArr[i]}))];
+    csv='Animal_ID,EBV\n'+items.sort((a,b)=>b.ebv-a.ebv).map(x=>`${x.id},${x.ebv.toFixed(6)}`).join('\n');
+  } else if(r.type==='reml') {
+    csv=`Parameter,Value\nsigma2_a,${r.va}\nsigma2_e,${r.ve}\nsigma2_p,${r.vp}\nh2,${r.h2}\nconverged,${r.converged}\niterations,${r.history.length}`;
+  } else if(r.type==='index') {
+    csv='Animal,Index_Value\n'+r.indexed.map(a=>`${a.id},${a.I.toFixed(6)}`).join('\n');
+  }
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`BVE_results_${r.type}.csv`; a.click();
+}
+
+// ─── EXAMPLE DATA ─────────────────────────────────────────────────────────────
+function loadExample() {
+  clearAll();
+  const method=state.method;
+  if(method==='blup'||method==='reml') {
+    const animals=[
+      {id:'Sire1',sire:'0',dam:'0',pheno:'',group:'1'},
+      {id:'Dam1',sire:'0',dam:'0',pheno:'',group:'1'},
+      {id:'Dam2',sire:'0',dam:'0',pheno:'',group:'1'},
+      {id:'A1',sire:'Sire1',dam:'Dam1',pheno:'520',group:'1'},
+      {id:'A2',sire:'Sire1',dam:'Dam1',pheno:'480',group:'1'},
+      {id:'A3',sire:'Sire1',dam:'Dam2',pheno:'540',group:'2'},
+      {id:'A4',sire:'Sire1',dam:'Dam2',pheno:'510',group:'2'},
+      {id:'A5',sire:'A1',dam:'Dam2',pheno:'560',group:'1'},
+      {id:'A6',sire:'A1',dam:'Dam1',pheno:'495',group:'2'},
+      {id:'A7',sire:'A2',dam:'Dam2',pheno:'530',group:'1'},
+    ];
+    const tbody=document.getElementById(`${method}-manual-body`); tbody.innerHTML='';
+    animals.forEach((a,i)=>{
+      const tr=document.createElement('tr');
+      if(method==='blup') tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i+1}</td><td><input class="form-input" style="width:90px" value="${a.id}"></td><td><input class="form-input" style="width:80px" value="${a.sire}"></td><td><input class="form-input" style="width:80px" value="${a.dam}"></td><td><input class="form-input" style="width:90px" value="${a.pheno}"></td><td><input class="form-input" style="width:80px" value="${a.group}"></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>`;
+      else tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i+1}</td><td><input class="form-input" style="width:90px" value="${a.id}"></td><td><input class="form-input" style="width:80px" value="${a.sire}"></td><td><input class="form-input" style="width:80px" value="${a.dam}"></td><td><input class="form-input" style="width:90px" value="${a.pheno}"></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>`;
+      tbody.appendChild(tr);
+    });
+  } else if(method==='gblup') {
+    const animals=[{id:'G1',pheno:520},{id:'G2',pheno:480},{id:'G3',pheno:540},{id:'G4',pheno:510},{id:'G5',pheno:560}];
+    const tbody=document.getElementById('gblup-manual-body'); tbody.innerHTML='';
+    animals.forEach((a,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td style="color:var(--text3);font-size:11px;padding:4px 10px">${i+1}</td><td><input class="form-input" style="width:100px" value="${a.id}"></td><td><input class="form-input" style="width:100px" value="${a.pheno}"></td><td><button onclick="this.closest('tr').remove()" style="color:var(--red);background:none;border:none;cursor:pointer">×</button></td>`;tbody.appendChild(tr);});
+    // Generate example SNP data (5 animals, 20 markers)
+    const snp=animals.map(()=>Array.from({length:20},()=>Math.floor(Math.random()*3)));
+    state.gblup.snpMatrix=snp; state.gblup.markerNames=Array.from({length:20},(_,i)=>`SNP${i+1}`); state.gblup.snpAnimalIds=animals.map(a=>a.id);
+    document.getElementById('snp-badge').innerHTML=`<div class="file-badge">✓ Example: 5 animals × 20 SNPs (auto-generated)</div>`;
+  } else if(method==='index') {
+    buildIndexTables();
+    for(let i=0;i<5;i++) addIndexAnimal();
+  }
+}
+
+function clearAll() {
+  ['blup-manual-body','gblup-manual-body','reml-manual-body','idx-obs-body','idx-traits-body','idx-P-body','idx-G-body'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  state.gblup.snpMatrix=null;
+  document.getElementById('results-section').classList.add('hidden');
+  if(state.charts.ebv) state.charts.ebv.destroy();
+  if(state.charts.acc) state.charts.acc.destroy();
+}
+
+function showHelp() {
+  const helps={
+    blup:'Animal BLUP uses Henderson\'s Mixed Model Equations (MME) to estimate breeding values from phenotypic records and pedigree relationships. λ = σ²e/σ²a = (1-h²)/h².',
+    gblup:'Genomic BLUP replaces the pedigree-based A matrix with a genomic relationship matrix G built from SNP markers (VanRaden 2008). More accurate for selection candidates without phenotypes.',
+    reml:'EM-REML iteratively estimates variance components σ²a and σ²e without requiring prior knowledge of heritability. Useful when h² is unknown.',
+    index:'Selection Index (Hazel 1943) constructs an optimal linear combination of phenotypic measurements to maximise correlation with the aggregate breeding goal H = v\'a.'
+  };
+  alert(helps[state.method]);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.onload=()=>{
+  buildIndexTables();
+  // Pre-populate with some empty rows
+  for(let i=0;i<5;i++) addManualRow('blup');
+  for(let i=0;i<3;i++) addManualRow('gblup');
+  for(let i=0;i<5;i++) addManualRow('reml');
+  for(let i=0;i<4;i++) addIndexAnimal();
+};
+</script>
+</body>
+</html>
